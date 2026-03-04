@@ -1,16 +1,19 @@
-# React + Vite
+Este es el repositorio de la UI, para hacer peticiones a la parte del backend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+La rama develop sera todo lo relacionado, a las nuevas feature. 
+La rama prod será lo que se encuentra desplegado en el servicio web.
+La rama release será lo que se va a desplegar hacia produción, es decir, es una copia de release.
 
-Currently, two official plugins are available:
+Para la creación de una rama, utilizaremos la nomenclatura feature/{actividadRealizar}, bug/{aResolver}
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Cualquier duda o sugerencia puede:
 
-## React Compiler
+Salir corriendo. 
+Rezarle a Dios. 
+Preguntarle a mi primo, el chat gepete. 
+Llamar un adulto responsable. 
+Hacer una fila y salir por orden alfabetico.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Gracias!
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Darwin was here!
