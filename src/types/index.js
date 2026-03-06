@@ -43,19 +43,31 @@
 // ─── Tipo de Ingreso ──────────────────────────────────────────────────────────
 
 /**
+ * Respuesta del backend — campos reales de TiposIngresos.java
+ * El backend NO tiene fechaCreacion en esta entidad.
  * @typedef {Object} TipoIngreso
  * @property {number} id
  * @property {string} nombre
  * @property {boolean} dependeDeSalario
- * @property {string} estado
- * @property {string} fechaCreacion
+ * @property {string} estado   — valor libre, ej: "Activo" / "Inactivo"
  */
 
 /**
- * @typedef {Omit<TipoIngreso, 'id' | 'fechaCreacion'>} TipoIngresoPayload
+ * Payload para crear un tipo de ingreso (sin id)
+ * @typedef {Object} TipoIngresoPayload
+ * @property {string} nombre
+ * @property {boolean} dependeDeSalario
+ * @property {string} estado
+ */
+
+/**
+ * Payload para actualizar (requiere id para el backend)
+ * @typedef {TipoIngresoPayload & { id: number }} TipoIngresoUpdatePayload
  */
 
 // ─── Tipo de Deducción ────────────────────────────────────────────────────────
+// El backend aún NO tiene implementado el módulo de deducciones.
+// Estos tipos se definen para uso futuro.
 
 /**
  * @typedef {Object} TipoDeduccion
@@ -63,11 +75,10 @@
  * @property {string} nombre
  * @property {boolean} dependeDeSalario
  * @property {string} estado
- * @property {string} fechaCreacion
  */
 
 /**
- * @typedef {Omit<TipoDeduccion, 'id' | 'fechaCreacion'>} TipoDeduccionPayload
+ * @typedef {Omit<TipoDeduccion, 'id'>} TipoDeduccionPayload
  */
 
 export {}
