@@ -3,9 +3,8 @@ import { Separator } from 'radix-ui'
 import {
   DashboardIcon,
   PersonIcon,
-  PlusCircledIcon,
-  MinusCircledIcon,
   LayersIcon,
+  MixerHorizontalIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
 } from '@radix-ui/react-icons'
@@ -23,14 +22,9 @@ const NAV_ITEMS = [
     icon: <PersonIcon width={20} height={20} />,
   },
   {
-    label: 'Tipos de Ingresos',
+    label: 'Ing. y Ded.',
     path: '/tipos-ingresos',
-    icon: <PlusCircledIcon width={20} height={20} />,
-  },
-  {
-    label: 'Tipos de Deducciones',
-    path: '/tipos-deducciones',
-    icon: <MinusCircledIcon width={20} height={20} />,
+    icon: <MixerHorizontalIcon width={20} height={20} />,
   },
 ]
 
