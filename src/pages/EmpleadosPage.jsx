@@ -15,6 +15,18 @@ import {
 } from '@radix-ui/react-icons'
 import { useEmpleados } from '../hooks/useEmpleados.js'
 
+// Importación lazy de las funciones de exportación — las librerías (jsPDF, xlsx)
+// solo se cargan cuando el usuario hace click, no al abrir la página.
+async function handleExportarPDF(empleados) {
+  const { exportarEmpleadosPDF } = await import('../lib/exportar.js')
+  exportarEmpleadosPDF(empleados)
+}
+
+async function handleExportarXLSX(empleados) {
+  const { exportarEmpleadosXLSX } = await import('../lib/exportar.js')
+  exportarEmpleadosXLSX(empleados)
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 /** Genera iniciales a partir del nombre completo */
@@ -375,6 +387,7 @@ function LoadingRows() {
 function EmpleadosPage() {
   const {
     empleados,
+    empleadosFiltrados,
     loading,
     error,
     busqueda,
@@ -642,11 +655,19 @@ function EmpleadosPage() {
 
         {/* ── Exportar ── */}
         <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-grey-600 rounded-xl border border-grey-200 hover:bg-grey-100 transition-colors cursor-pointer">
+          <button
+            onClick={() => handleExportarPDF(empleadosFiltrados)}
+            disabled={loading || empleadosFiltrados.length === 0}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-grey-600 rounded-xl border border-grey-200 hover:bg-grey-100 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          >
             <FileTextIcon className="text-grey-500" />
             Exportar en PDF
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-primary-500 rounded-xl border border-primary-300 hover:bg-primary-100 transition-colors cursor-pointer">
+          <button
+            onClick={() => handleExportarXLSX(empleadosFiltrados)}
+            disabled={loading || empleadosFiltrados.length === 0}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-primary-500 rounded-xl border border-primary-300 hover:bg-primary-100 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          >
             <DownloadIcon className="text-primary-400" />
             Exportar en XLS
           </button>

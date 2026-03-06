@@ -86,6 +86,8 @@ export function useEmpleados() {
   const rangoDesde = totalEmpleados === 0 ? 0 : (paginaSegura - 1) * PAGE_SIZE + 1
   const rangoHasta = Math.min(paginaSegura * PAGE_SIZE, totalEmpleados)
   const empleados = filtrados.slice((paginaSegura - 1) * PAGE_SIZE, paginaSegura * PAGE_SIZE)
+  // empleadosFiltrados = todos los que pasan los filtros, sin paginar (para exportar)
+  const empleadosFiltrados = filtrados
 
   // Resetear a página 1 cuando cambian los filtros
   function handleSetBusqueda(v) {
@@ -145,6 +147,7 @@ export function useEmpleados() {
 
   return {
     empleados,
+    empleadosFiltrados,
     loading,
     error,
     busqueda,
