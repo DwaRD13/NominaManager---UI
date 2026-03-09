@@ -14,6 +14,7 @@ import {
   UpdateIcon,
 } from '@radix-ui/react-icons'
 import { useEmpleados } from '../hooks/useEmpleados.js'
+import { useToast } from '../hooks/useToast.jsx'
 
 // Importación lazy de las funciones de exportación — las librerías (jsPDF, xlsx)
 // solo se cargan cuando el usuario hace click, no al abrir la página.
@@ -385,6 +386,8 @@ function LoadingRows() {
 
 // ── Página principal ──────────────────────────────────────────────────────────
 function EmpleadosPage() {
+  const { toast } = useToast()
+
   const {
     empleados,
     empleadosFiltrados,
@@ -405,6 +408,21 @@ function EmpleadosPage() {
     eliminar,
     saving,
   } = useEmpleados()
+
+  // ── Wrappers con toast ──
+  async function handleCrear(payload) {
+    await crear(payload)
+    toast({ title: 'Empleado creado', description: `"${payload.nombre}" fue agregado correctamente.`, variant: 'success' })
+  }
+  async function handleActualizar(payload) {
+    await actualizar(payload)
+    toast({ title: 'Empleado actualizado', description: `"${payload.nombre}" fue modificado correctamente.`, variant: 'success' })
+  }
+  async function handleEliminar(id) {
+    const item = empleados.find((e) => e.id === id)
+    await eliminar(id)
+    toast({ title: 'Empleado eliminado', description: `"${item?.nombre}" fue eliminado.`, variant: 'error' })
+  }
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -490,7 +508,7 @@ function EmpleadosPage() {
             {/* Botón nuevo empleado */}
             <EmpleadoDialog
               titulo="Nuevo Empleado"
-              onGuardar={crear}
+              onGuardar={handleCrear}
               saving={saving}
               trigger={
                 <button
@@ -561,7 +579,7 @@ function EmpleadosPage() {
                           <EmpleadoDialog
                             titulo={`Editar — ${emp.nombre}`}
                             empleadoInicial={emp}
-                            onGuardar={actualizar}
+                            onGuardar={handleActualizar}
                             saving={saving}
                             trigger={
                               <button className="flex items-center justify-center w-8 h-8 rounded-lg hover:bg-primary-100 text-grey-400 hover:text-primary-500 transition-colors cursor-pointer">
@@ -584,7 +602,7 @@ function EmpleadosPage() {
                           <span>
                             <EliminarDialog
                               nombre={emp.nombre}
-                              onEliminar={() => eliminar(emp.id)}
+                              onEliminar={() => handleEliminar(emp.id)}
                               saving={saving}
                             />
                           </span>
