@@ -8,44 +8,21 @@ import {
   UpdateIcon,
   CheckCircledIcon,
 } from '@radix-ui/react-icons'
+import { useDashboard } from '../hooks/useDashboard.js'
+import { useState } from 'react'
 
-// ── Datos de ejemplo (mock) ──
-const statCards = [
-  {
-    id: 'ingresos',
-    label: 'Tipos de Ingresos',
-    sublabel: '13 Tipos registrados',
-    icon: ArrowUpIcon,
-    iconBg: 'bg-primary-100',
-    iconColor: 'text-primary-500',
-  },
-  {
-    id: 'deducciones',
-    label: 'Tipos Deducción',
-    sublabel: '8 Tipos registrados',
-    icon: ArrowDownIcon,
-    iconBg: 'bg-grey-200',
-    iconColor: 'text-grey-600',
-  },
-  {
-    id: 'empleados',
-    label: 'Empleados',
-    sublabel: '25 Activos',
-    icon: PersonIcon,
-    iconBg: 'bg-primary-100',
-    iconColor: 'text-primary-500',
-  },
-  {
-    id: 'reportes',
-    label: 'Reportes',
-    sublabel: 'Generar Informes',
-    icon: FileTextIcon,
-    iconBg: 'bg-primary-100',
-    iconColor: 'text-primary-500',
-  },
-]
+async function handleExportarPDF(empleados) {
+  const { exportarEmpleadosPDF } = await import('../lib/exportar.js')
+  exportarEmpleadosPDF(empleados)
+}
 
-const actividadReciente = [
+function formatCurrency(valor) {
+  if (valor == null) return '0.00'
+  return new Intl.NumberFormat('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(valor)
+}
+
+// ── Datos mock para Actividad Reciente (ya que no hay endpoint de transacciones) ──
+const actividadRecienteMock = [
   {
     id: 1,
     tipo: 'Salario Base',
@@ -60,9 +37,9 @@ const actividadReciente = [
   {
     id: 2,
     tipo: 'Salario Base',
-    empleado: 'Nelson Diaz',
+    empleado: 'Maria Perez',
     fecha: '25 Apr',
-    monto: '+$240,000.00',
+    monto: '+$180,000.00',
     estado: 'INGRESO',
     montoColor: 'text-primary-400',
     badgeBg: 'bg-primary-100',
@@ -70,40 +47,79 @@ const actividadReciente = [
   },
   {
     id: 3,
-    tipo: 'Salario Base',
+    tipo: 'Seguro Familiar de Salud (SFS)',
     empleado: 'Nelson Diaz',
     fecha: '25 Apr',
-    monto: '+$240,000.00',
-    estado: 'INGRESO',
-    montoColor: 'text-primary-400',
-    badgeBg: 'bg-primary-100',
-    badgeColor: 'text-primary-500',
-  },
-  {
-    id: 4,
-    tipo: 'Salario Base',
-    empleado: 'Nelson Diaz',
-    fecha: '25 Apr',
-    monto: '+$240,000.00',
-    estado: 'INGRESO',
-    montoColor: 'text-primary-400',
-    badgeBg: 'bg-primary-100',
-    badgeColor: 'text-primary-500',
-  },
-  {
-    id: 5,
-    tipo: 'Salario Base',
-    empleado: 'Nelson Diaz',
-    fecha: '25 Apr',
-    monto: '-$55,500.00',
+    monto: '-$7,296.00',
     estado: 'DEDUCCIÓN',
     montoColor: 'text-grey-600',
     badgeBg: 'bg-grey-200',
     badgeColor: 'text-grey-600',
   },
+  {
+    id: 4,
+    tipo: 'Seguro Familiar de Salud (SFS)',
+    empleado: 'Maria Perez',
+    fecha: '25 Apr',
+    monto: '-$5,472.00',
+    estado: 'DEDUCCIÓN',
+    montoColor: 'text-grey-600',
+    badgeBg: 'bg-grey-200',
+    badgeColor: 'text-grey-600',
+  }
 ]
 
 function DashboardPage() {
+  const { data, loading, error } = useDashboard()
+  const [exportando, setExportando] = useState(false)
+
+  const handleGenerarInforme = async () => {
+    if (data.empleados.length === 0) return
+    setExportando(true)
+    try {
+      await handleExportarPDF(data.empleados)
+    } finally {
+      setExportando(false)
+    }
+  }
+
+  const statCards = [
+    {
+      id: 'ingresos',
+      label: 'Tipos de Ingresos',
+      sublabel: loading ? '...' : `${data.tiposIngresosCount} Tipos registrados`,
+      icon: ArrowUpIcon,
+      iconBg: 'bg-primary-100',
+      iconColor: 'text-primary-500',
+    },
+    {
+      id: 'deducciones',
+      label: 'Tipos Deducción',
+      sublabel: loading ? '...' : `${data.tiposDeduccionesCount} Tipos registrados`,
+      icon: ArrowDownIcon,
+      iconBg: 'bg-grey-200',
+      iconColor: 'text-grey-600',
+    },
+    {
+      id: 'empleados',
+      label: 'Empleados',
+      sublabel: loading ? '...' : `${data.empleadosActivos} Activos`,
+      icon: PersonIcon,
+      iconBg: 'bg-primary-100',
+      iconColor: 'text-primary-500',
+    },
+    {
+      id: 'reportes',
+      label: 'Reportes',
+      sublabel: exportando ? 'Generando...' : 'Generar PDF Empleados',
+      icon: FileTextIcon,
+      iconBg: 'bg-primary-100',
+      iconColor: 'text-primary-500',
+      onClick: handleGenerarInforme,
+      clickable: !loading && data.empleados.length > 0 && !exportando
+    },
+  ]
+
   return (
     <div className="flex flex-col min-h-screen">
 
@@ -117,6 +133,12 @@ function DashboardPage() {
             <span className="text-grey-400">Inicio</span>
           </nav>
         </div>
+
+        {error && (
+          <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-red-200 bg-red-50 text-red-600 text-sm">
+            <span className="font-semibold">Error:</span> {error}
+          </div>
+        )}
 
         {/* ── Fila superior: Card Nómina + Card Sincronización ── */}
         <div className="flex gap-5">
@@ -132,14 +154,14 @@ function DashboardPage() {
               <Tooltip.Provider delayDuration={300}>
                 <Tooltip.Root>
                   <Tooltip.Trigger asChild>
-                    <span className="text-xs text-grey-400 cursor-default">Marzo 2026</span>
+                    <span className="text-xs text-grey-400 cursor-default">Mes Actual</span>
                   </Tooltip.Trigger>
                   <Tooltip.Portal>
                     <Tooltip.Content
                       className="bg-grey-700 text-white text-xs px-2 py-1 rounded"
                       sideOffset={4}
                     >
-                      Período activo
+                      Basado en salarios activos
                       <Tooltip.Arrow className="fill-grey-700" />
                     </Tooltip.Content>
                   </Tooltip.Portal>
@@ -150,7 +172,9 @@ function DashboardPage() {
             {/* Monto principal */}
             <div className="flex items-baseline gap-1">
               <span className="text-2xl font-bold text-primary-400">$</span>
-              <span className="text-5xl font-bold text-grey-700">184,500.00</span>
+              <span className="text-5xl font-bold text-grey-700">
+                {loading ? '...' : formatCurrency(data.totalNomina)}
+              </span>
             </div>
 
             {/* Separador */}
@@ -159,20 +183,27 @@ function DashboardPage() {
             {/* Breakdown Ingresos / Deducciones */}
             <div className="flex items-center gap-8 bg-grey-100 rounded-lg px-4 py-3 border border-grey-200">
               <div className="flex items-center gap-3">
-                <span className="text-grey-400 text-sm font-medium">Ingresos:</span>
-                <span className="text-base font-bold text-primary-400">$240,000.00</span>
+                <span className="text-grey-400 text-sm font-medium">Ingresos brutos:</span>
+                <span className="text-base font-bold text-primary-400">
+                  ${loading ? '...' : formatCurrency(data.totalNomina)}
+                </span>
               </div>
               <Separator.Root orientation="vertical" className="w-px h-6 bg-grey-300" />
               <div className="flex items-center gap-3">
-                <span className="text-grey-400 text-sm font-medium">Deducciones:</span>
-                <span className="text-base font-bold text-grey-600">-$55,500.00</span>
+                <span className="text-grey-400 text-sm font-medium">Deducciones estimadas:</span>
+                <span className="text-base font-bold text-grey-600">
+                  {/* Mock for now since deductions are not implemented backend-wise */}
+                  -$0.00
+                </span>
               </div>
             </div>
 
             {/* Footer */}
             <div className="flex items-center gap-2 mt-auto">
               <PersonIcon className="text-primary-300" />
-              <span className="text-sm text-grey-400">25 Empleados Activos</span>
+              <span className="text-sm text-grey-400">
+                {loading ? '...' : `${data.empleadosActivos} Empleados Activos`}
+              </span>
             </div>
           </div>
 
@@ -186,17 +217,18 @@ function DashboardPage() {
             <div className="flex flex-col gap-2 flex-1">
               <div className="flex items-center gap-2">
                 <span className="text-sm text-grey-400">Última sincronización:</span>
-                <span className="text-sm font-medium text-grey-700">20 Abril 2024</span>
+                <span className="text-sm font-medium text-grey-700">Pendiente</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-grey-400">Estado:</span>
-                <span className="text-sm font-medium text-secondary-300">Pendiente de envío</span>
+                <span className="text-sm font-medium text-grey-400">Módulo no disponible</span>
               </div>
             </div>
 
             {/* Botón Enviar WS */}
             <button
-              className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg bg-primary-400 text-white text-sm font-medium transition-colors hover:bg-primary-500 cursor-pointer"
+              disabled
+              className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg bg-primary-400 text-white text-sm font-medium transition-colors opacity-50 cursor-not-allowed"
               style={{ boxShadow: '0px 2px 8px 0px rgba(0,128,128,0.20)' }}
             >
               <UpdateIcon />
@@ -212,7 +244,10 @@ function DashboardPage() {
             return (
               <div
                 key={card.id}
-                className="bg-white rounded-xl border border-grey-200 p-4 flex items-center gap-4"
+                onClick={card.clickable ? card.onClick : undefined}
+                className={`bg-white rounded-xl border border-grey-200 p-4 flex items-center gap-4 transition-colors ${
+                  card.clickable ? 'cursor-pointer hover:bg-primary-100/30' : ''
+                } ${card.id === 'reportes' && !card.clickable ? 'opacity-70' : ''}`}
                 style={{ boxShadow: '0px 4px 16px 0px rgba(0,0,0,0.04)' }}
               >
                 <div className={`flex items-center justify-center w-14 h-14 rounded-xl ${card.iconBg}`}>
@@ -234,7 +269,7 @@ function DashboardPage() {
         >
           {/* Header tabla */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-grey-200">
-            <h2 className="text-lg font-bold text-grey-700">Actividad Reciente</h2>
+            <h2 className="text-lg font-bold text-grey-700">Actividad Reciente (Ejemplo)</h2>
             <button className="flex items-center gap-1 text-sm text-primary-400 font-medium hover:text-primary-500 transition-colors cursor-pointer">
               Ver todas
               <ArrowRightIcon />
@@ -251,7 +286,7 @@ function DashboardPage() {
           </div>
 
           {/* Filas */}
-          {actividadReciente.map((item, idx) => (
+          {actividadRecienteMock.map((item, idx) => (
             <div key={item.id}>
               <div
                 className="grid items-center px-6 py-4 hover:bg-grey-100 transition-colors"
@@ -259,7 +294,7 @@ function DashboardPage() {
               >
                 {/* Tipo */}
                 <div className="flex items-center gap-2">
-                  <CheckCircledIcon className="text-primary-300 w-4 h-4" />
+                  <CheckCircledIcon className={item.estado === 'INGRESO' ? 'text-primary-300 w-4 h-4' : 'text-grey-400 w-4 h-4'} />
                   <span className="text-sm text-grey-700">{item.tipo}</span>
                 </div>
 
@@ -296,7 +331,7 @@ function DashboardPage() {
               </div>
 
               {/* Separador entre filas */}
-              {idx < actividadReciente.length - 1 && (
+              {idx < actividadRecienteMock.length - 1 && (
                 <Separator.Root className="h-px bg-grey-200 mx-6" />
               )}
             </div>
