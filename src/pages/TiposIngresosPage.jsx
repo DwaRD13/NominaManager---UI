@@ -10,24 +10,21 @@ import {
   ArrowDownIcon,
   MagnifyingGlassIcon,
   UpdateIcon,
+  FileTextIcon,
+  DownloadIcon,
 } from '@radix-ui/react-icons'
-import { useTiposIngresos } from '../hooks/useTiposIngresos.js'
+import { useTiposIngresos }    from '../hooks/useTiposIngresos.js'
+import { useTiposDeducciones } from '../hooks/useTiposDeducciones.js'
+import { useToast }            from '../hooks/useToast.jsx'
 
-// ── Estado inicial del formulario ─────────────────────────────────────────────
-const FORM_VACIO = {
-  nombre: '',
-  dependeDeSalario: false,
-  estado: 'Activo',
-}
-
-// ── Sub-componente: Badge dependeDeSalario ────────────────────────────────────
+// ─────────────────────────────────────────────
+// Sub: Badge gravable / no gravable (Ingresos)
+// ─────────────────────────────────────────────
 function DependeBadge({ depende }) {
   return (
     <span
       className={`inline-flex items-center justify-center px-2 py-0.5 rounded text-xs font-medium w-fit ${
-        depende
-          ? 'bg-primary-100 text-primary-500'
-          : 'bg-grey-200 text-grey-500'
+        depende ? 'bg-primary-100 text-primary-500' : 'bg-grey-200 text-grey-500'
       }`}
     >
       {depende ? 'Gravable' : 'No gravable'}
@@ -35,10 +32,14 @@ function DependeBadge({ depende }) {
   )
 }
 
-// ── Sub-componente: Dialog Nuevo / Editar Tipo de Ingreso ────────────────────
+// ─────────────────────────────────────────────
+// Sub: Dialog Nuevo / Editar — INGRESOS
+// ─────────────────────────────────────────────
+const FORM_INGRESO_VACIO = { nombre: '', dependeDeSalario: false }
+
 function TipoIngresoDialog({ trigger, titulo, itemInicial = null, onGuardar, saving }) {
-  const [open, setOpen] = useState(false)
-  const [form, setForm] = useState(FORM_VACIO)
+  const [open, setOpen]         = useState(false)
+  const [form, setForm]         = useState(FORM_INGRESO_VACIO)
   const [formError, setFormError] = useState(null)
 
   function handleOpen(val) {
@@ -46,12 +47,8 @@ function TipoIngresoDialog({ trigger, titulo, itemInicial = null, onGuardar, sav
     if (val) {
       setForm(
         itemInicial
-          ? {
-              nombre: itemInicial.nombre ?? '',
-              dependeDeSalario: itemInicial.dependeDeSalario ?? false,
-              estado: itemInicial.estado ?? 'Activo',
-            }
-          : FORM_VACIO
+          ? { nombre: itemInicial.nombre ?? '', dependeDeSalario: itemInicial.dependeDeSalario ?? false }
+          : FORM_INGRESO_VACIO
       )
       setFormError(null)
     }
@@ -62,18 +59,13 @@ function TipoIngresoDialog({ trigger, titulo, itemInicial = null, onGuardar, sav
   }
 
   async function handleGuardar() {
-    if (!form.nombre.trim()) {
-      setFormError('El nombre es obligatorio.')
-      return
-    }
-
+    if (!form.nombre.trim()) { setFormError('El nombre es obligatorio.'); return }
     const payload = {
       ...(itemInicial ? { id: itemInicial.id } : {}),
       nombre: form.nombre.trim(),
       dependeDeSalario: form.dependeDeSalario,
-      estado: form.estado,
+      estado: itemInicial?.estado ?? 'Activo',
     }
-
     try {
       setFormError(null)
       await onGuardar(payload)
@@ -92,7 +84,6 @@ function TipoIngresoDialog({ trigger, titulo, itemInicial = null, onGuardar, sav
           className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-white rounded-xl border border-grey-200 p-6 w-full max-w-md flex flex-col gap-5 focus:outline-none"
           style={{ boxShadow: '0px 8px 32px 0px rgba(0,0,0,0.12)' }}
         >
-          {/* ── Header ── */}
           <div className="flex flex-col gap-1">
             <Dialog.Title className="text-lg font-bold text-grey-700">{titulo}</Dialog.Title>
             <Dialog.Description className="text-sm text-grey-400">
@@ -102,9 +93,7 @@ function TipoIngresoDialog({ trigger, titulo, itemInicial = null, onGuardar, sav
 
           <Separator.Root className="h-px bg-grey-200" />
 
-          {/* ── Campos ── */}
           <div className="flex flex-col gap-4">
-
             {/* Nombre */}
             <div className="flex flex-col gap-1">
               <label className="text-xs font-semibold text-grey-600">Nombre *</label>
@@ -117,13 +106,11 @@ function TipoIngresoDialog({ trigger, titulo, itemInicial = null, onGuardar, sav
               />
             </div>
 
-            {/* Depende de salario — toggle visual */}
+            {/* Toggle depende de salario */}
             <div className="flex items-center justify-between px-3 py-2.5 rounded-lg border border-grey-200 bg-grey-100">
               <div className="flex flex-col gap-0.5">
                 <span className="text-xs font-semibold text-grey-700">Depende del salario</span>
-                <span className="text-xs text-grey-400">
-                  Indica si este ingreso es gravable (aplica ISR u otros cálculos)
-                </span>
+                <span className="text-xs text-grey-400">Indica si este ingreso es gravable</span>
               </div>
               <button
                 type="button"
@@ -142,19 +129,12 @@ function TipoIngresoDialog({ trigger, titulo, itemInicial = null, onGuardar, sav
               </button>
             </div>
 
-            {/* Error del formulario */}
-            {formError && (
-              <p className="text-xs text-red-500 font-medium">{formError}</p>
-            )}
+            {formError && <p className="text-xs text-grey-600 font-medium">{formError}</p>}
           </div>
 
-          {/* ── Acciones ── */}
           <div className="flex items-center justify-end gap-3 pt-1">
             <Dialog.Close asChild>
-              <button
-                disabled={saving}
-                className="px-4 py-2 text-sm font-medium text-grey-500 rounded-lg border border-grey-200 hover:bg-grey-100 transition-colors cursor-pointer disabled:opacity-50"
-              >
+              <button disabled={saving} className="px-4 py-2 text-sm font-medium text-grey-500 rounded-lg border border-grey-200 hover:bg-grey-100 transition-colors cursor-pointer disabled:opacity-50">
                 Cancelar
               </button>
             </Dialog.Close>
@@ -174,8 +154,120 @@ function TipoIngresoDialog({ trigger, titulo, itemInicial = null, onGuardar, sav
   )
 }
 
-// ── Sub-componente: AlertDialog Eliminar ─────────────────────────────────────
-function EliminarDialog({ nombre, onEliminar, saving }) {
+// ─────────────────────────────────────────────
+// Sub: Dialog Nuevo / Editar — DEDUCCIONES
+// ─────────────────────────────────────────────
+const FORM_DEDUCCION_VACIO = { nombre: '', tasa: '' }
+
+function TipoDeduccionDialog({ trigger, titulo, itemInicial = null, onGuardar, saving }) {
+  const [open, setOpen]           = useState(false)
+  const [form, setForm]           = useState(FORM_DEDUCCION_VACIO)
+  const [formError, setFormError] = useState(null)
+
+  function handleOpen(val) {
+    setOpen(val)
+    if (val) {
+      setForm(
+        itemInicial
+          ? { nombre: itemInicial.nombre ?? '', tasa: itemInicial.tasa ?? '' }
+          : FORM_DEDUCCION_VACIO
+      )
+      setFormError(null)
+    }
+  }
+
+  function set(campo, valor) {
+    setForm((prev) => ({ ...prev, [campo]: valor }))
+  }
+
+  async function handleGuardar() {
+    if (!form.nombre.trim()) { setFormError('El nombre es obligatorio.'); return }
+    const payload = {
+      ...(itemInicial ? { id: itemInicial.id } : {}),
+      nombre: form.nombre.trim(),
+      tasa: form.tasa.trim(),
+    }
+    try {
+      setFormError(null)
+      await onGuardar(payload)
+      setOpen(false)
+    } catch (e) {
+      setFormError(e.message)
+    }
+  }
+
+  return (
+    <Dialog.Root open={open} onOpenChange={handleOpen}>
+      <Dialog.Trigger asChild>{trigger}</Dialog.Trigger>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 bg-black/40 z-40" />
+        <Dialog.Content
+          className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-white rounded-xl border border-grey-200 p-6 w-full max-w-md flex flex-col gap-5 focus:outline-none"
+          style={{ boxShadow: '0px 8px 32px 0px rgba(0,0,0,0.12)' }}
+        >
+          <div className="flex flex-col gap-1">
+            <Dialog.Title className="text-lg font-bold text-grey-700">{titulo}</Dialog.Title>
+            <Dialog.Description className="text-sm text-grey-400">
+              Completá los campos. Los marcados con * son obligatorios.
+            </Dialog.Description>
+          </div>
+
+          <Separator.Root className="h-px bg-grey-200" />
+
+          <div className="flex flex-col gap-4">
+            {/* Nombre */}
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-semibold text-grey-600">Nombre *</label>
+              <input
+                type="text"
+                value={form.nombre}
+                onChange={(e) => set('nombre', e.target.value)}
+                placeholder="Ej: Seguro Familiar de Salud (SFS)"
+                className="w-full px-3 py-2 text-sm rounded-lg border border-grey-200 bg-white text-grey-700 placeholder:text-grey-300 focus:outline-none focus:border-primary-400 transition-colors"
+              />
+            </div>
+
+            {/* Tasa */}
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-semibold text-grey-600">Tasa o monto</label>
+              <input
+                type="text"
+                value={form.tasa}
+                onChange={(e) => set('tasa', e.target.value)}
+                placeholder="Ej: 3.04% o Monto fijo"
+                className="w-full px-3 py-2 text-sm rounded-lg border border-grey-200 bg-white text-grey-700 placeholder:text-grey-300 focus:outline-none focus:border-primary-400 transition-colors"
+              />
+            </div>
+
+            {formError && <p className="text-xs text-grey-600 font-medium">{formError}</p>}
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-1">
+            <Dialog.Close asChild>
+              <button disabled={saving} className="px-4 py-2 text-sm font-medium text-grey-500 rounded-lg border border-grey-200 hover:bg-grey-100 transition-colors cursor-pointer disabled:opacity-50">
+                Cancelar
+              </button>
+            </Dialog.Close>
+            <button
+              onClick={handleGuardar}
+              disabled={saving}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-400 rounded-lg hover:bg-primary-500 transition-colors cursor-pointer disabled:opacity-60"
+              style={{ boxShadow: '0px 2px 8px 0px rgba(0,128,128,0.20)' }}
+            >
+              {saving && <UpdateIcon className="animate-spin" />}
+              Guardar
+            </button>
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
+  )
+}
+
+// ─────────────────────────────────────────────
+// Sub: AlertDialog Eliminar (reutilizable)
+// ─────────────────────────────────────────────
+function EliminarDialog({ nombre, labelTipo, onEliminar, saving }) {
   const [open, setOpen] = useState(false)
 
   async function handleEliminar() {
@@ -197,7 +289,7 @@ function EliminarDialog({ nombre, onEliminar, saving }) {
           style={{ boxShadow: '0px 8px 32px 0px rgba(0,0,0,0.12)' }}
         >
           <AlertDialog.Title className="text-base font-bold text-grey-700">
-            ¿Eliminar tipo de ingreso?
+            ¿Eliminar {labelTipo}?
           </AlertDialog.Title>
           <AlertDialog.Description className="text-sm text-grey-400">
             Estás por eliminar{' '}
@@ -206,10 +298,7 @@ function EliminarDialog({ nombre, onEliminar, saving }) {
           </AlertDialog.Description>
           <div className="flex items-center justify-end gap-3">
             <AlertDialog.Cancel asChild>
-              <button
-                disabled={saving}
-                className="px-4 py-2 text-sm font-medium text-grey-500 rounded-lg border border-grey-200 hover:bg-grey-100 transition-colors cursor-pointer disabled:opacity-50"
-              >
+              <button disabled={saving} className="px-4 py-2 text-sm font-medium text-grey-500 rounded-lg border border-grey-200 hover:bg-grey-100 transition-colors cursor-pointer disabled:opacity-50">
                 Cancelar
               </button>
             </AlertDialog.Cancel>
@@ -228,7 +317,9 @@ function EliminarDialog({ nombre, onEliminar, saving }) {
   )
 }
 
-// ── Sub-componente: Skeleton de carga ─────────────────────────────────────────
+// ─────────────────────────────────────────────
+// Sub: Skeleton de carga
+// ─────────────────────────────────────────────
 function LoadingRows({ count = 4 }) {
   return Array.from({ length: count }).map((_, i) => (
     <div key={i}>
@@ -247,81 +338,16 @@ function LoadingRows({ count = 4 }) {
   ))
 }
 
-// ── Sub-componente: Fila de item de ingreso ───────────────────────────────────
-function ItemRow({ item, onActualizar, onEliminar, saving, isLast }) {
-  return (
-    <>
-      <div className="flex items-center justify-between px-5 py-4 hover:bg-grey-100 transition-colors">
-        {/* Info */}
-        <div className="flex flex-col gap-1">
-          <span className="text-sm font-semibold text-grey-700">{item.nombre}</span>
-          <DependeBadge depende={item.dependeDeSalario} />
-        </div>
-
-        {/* Acciones */}
-        <Tooltip.Provider delayDuration={300}>
-          <div className="flex items-center gap-1">
-            {/* Editar */}
-            <Tooltip.Root>
-              <Tooltip.Trigger asChild>
-                <TipoIngresoDialog
-                  titulo={`Editar — ${item.nombre}`}
-                  itemInicial={item}
-                  onGuardar={onActualizar}
-                  saving={saving}
-                  trigger={
-                    <button className="flex items-center justify-center w-8 h-8 rounded-lg text-grey-400 hover:bg-primary-100 hover:text-primary-500 transition-colors cursor-pointer">
-                      <Pencil1Icon />
-                    </button>
-                  }
-                />
-              </Tooltip.Trigger>
-              <Tooltip.Portal>
-                <Tooltip.Content className="bg-grey-700 text-white text-xs px-2 py-1 rounded" sideOffset={4}>
-                  Editar
-                  <Tooltip.Arrow className="fill-grey-700" />
-                </Tooltip.Content>
-              </Tooltip.Portal>
-            </Tooltip.Root>
-
-            {/* Eliminar */}
-            <Tooltip.Root>
-              <Tooltip.Trigger asChild>
-                <span>
-                  <EliminarDialog
-                    nombre={item.nombre}
-                    onEliminar={() => onEliminar(item.id)}
-                    saving={saving}
-                  />
-                </span>
-              </Tooltip.Trigger>
-              <Tooltip.Portal>
-                <Tooltip.Content className="bg-grey-700 text-white text-xs px-2 py-1 rounded" sideOffset={4}>
-                  Eliminar
-                  <Tooltip.Arrow className="fill-grey-700" />
-                </Tooltip.Content>
-              </Tooltip.Portal>
-            </Tooltip.Root>
-          </div>
-        </Tooltip.Provider>
-      </div>
-      {!isLast && <Separator.Root className="h-px bg-grey-200 mx-5" />}
-    </>
-  )
-}
-
-// ── Sub-componente: Paginación ────────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// Sub: Paginación reutilizable
+// ─────────────────────────────────────────────
 function Paginacion({ total, pagina, totalPaginas, rangoDesde, rangoHasta, onPagina }) {
   return (
     <div className="flex items-center justify-between px-5 py-3 border-t border-grey-200">
       <span className="text-xs text-grey-400">
         {total === 0
           ? 'Sin resultados'
-          : <>
-              <span className="font-semibold text-grey-700">{rangoDesde}–{rangoHasta}</span>
-              {' '}de{' '}
-              <span className="font-semibold text-grey-700">{total}</span>
-            </>
+          : <><span className="font-semibold text-grey-700">{rangoDesde}–{rangoHasta}</span> de <span className="font-semibold text-grey-700">{total}</span></>
         }
       </span>
       <div className="flex items-center gap-1">
@@ -357,30 +383,81 @@ function Paginacion({ total, pagina, totalPaginas, rangoDesde, rangoHasta, onPag
   )
 }
 
-// ── Página principal ──────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// Página principal
+// ─────────────────────────────────────────────
 function TiposIngresosPage() {
+  const { toast } = useToast()
+
+  // ── Hook Ingresos (backend real) ──
   const {
     tiposIngresos,
-    loading,
-    error,
-    busqueda,
-    setBusqueda,
-    pagina,
-    setPagina,
-    totalPaginas,
-    totalItems,
-    rangoDesde,
-    rangoHasta,
-    crear,
-    actualizar,
-    eliminar,
-    saving,
+    loading:      loadingIng,
+    error:        errorIng,
+    busqueda:     busquedaIng,
+    setBusqueda:  setBusquedaIng,
+    pagina:       paginaIng,
+    setPagina:    setPaginaIng,
+    totalPaginas: totalPaginasIng,
+    totalItems:   totalIng,
+    rangoDesde:   rangoDesdeIng,
+    rangoHasta:   rangoHastaIng,
+    crear:        crearIng,
+    actualizar:   actualizarIng,
+    eliminar:     eliminarIng,
+    saving:       savingIng,
   } = useTiposIngresos()
+
+  // ── Hook Deducciones (mock local) ──
+  const {
+    tiposDeducciones,
+    loading:      loadingDed,
+    busqueda:     busquedaDed,
+    setBusqueda:  setBusquedaDed,
+    pagina:       paginaDed,
+    setPagina:    setPaginaDed,
+    totalPaginas: totalPaginasDed,
+    totalItems:   totalDed,
+    rangoDesde:   rangoDesdeDed,
+    rangoHasta:   rangoHastaDed,
+    crear:        crearDed,
+    actualizar:   actualizarDed,
+    eliminar:     eliminarDed,
+    saving:       savingDed,
+  } = useTiposDeducciones()
+
+  // ── Wrappers con toast — Ingresos ──
+  async function handleCrearIngreso(payload) {
+    await crearIng(payload)
+    toast({ title: 'Ingreso creado', description: `"${payload.nombre}" fue agregado.`, variant: 'success' })
+  }
+  async function handleActualizarIngreso(payload) {
+    await actualizarIng(payload)
+    toast({ title: 'Ingreso actualizado', description: `"${payload.nombre}" fue modificado.`, variant: 'success' })
+  }
+  async function handleEliminarIngreso(id) {
+    const item = tiposIngresos.find((i) => i.id === id)
+    await eliminarIng(id)
+    toast({ title: 'Ingreso eliminado', description: `"${item?.nombre}" fue eliminado.`, variant: 'error' })
+  }
+
+  // ── Wrappers con toast — Deducciones ──
+  async function handleCrearDeduccion(payload) {
+    await crearDed(payload)
+    toast({ title: 'Deducción creada', description: `"${payload.nombre}" fue agregada.`, variant: 'success' })
+  }
+  async function handleActualizarDeduccion(payload) {
+    await actualizarDed(payload)
+    toast({ title: 'Deducción actualizada', description: `"${payload.nombre}" fue modificada.`, variant: 'success' })
+  }
+  async function handleEliminarDeduccion(id) {
+    const item = tiposDeducciones.find((d) => d.id === id)
+    await eliminarDed(id)
+    toast({ title: 'Deducción eliminada', description: `"${item?.nombre}" fue eliminada.`, variant: 'error' })
+  }
 
   return (
     <div className="flex flex-col min-h-screen">
-
-      {/* ── Body ── */}
       <div className="flex flex-col gap-6 px-8 pt-4 pb-8">
 
         {/* ── Título + breadcrumbs ── */}
@@ -393,10 +470,10 @@ function TiposIngresosPage() {
           </nav>
         </div>
 
-        {/* ── Error global ── */}
-        {error && (
-          <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-red-200 bg-red-50 text-red-600 text-sm">
-            <span className="font-semibold">Error:</span> {error}
+        {/* ── Error global (solo ingresos tiene backend) ── */}
+        {errorIng && (
+          <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-grey-300 bg-grey-100 text-grey-600 text-sm">
+            <span className="font-semibold">Error:</span> {errorIng}
           </div>
         )}
 
@@ -419,14 +496,14 @@ function TiposIngresosPage() {
                 <div className="flex flex-col gap-0.5">
                   <h2 className="text-base font-bold text-grey-700">Tipos de Ingresos</h2>
                   <span className="text-xs text-grey-400">
-                    {loading ? '...' : `${totalItems} registrado${totalItems !== 1 ? 's' : ''}`}
+                    {loadingIng ? '...' : `${totalIng} registrado${totalIng !== 1 ? 's' : ''}`}
                   </span>
                 </div>
               </div>
               <TipoIngresoDialog
                 titulo="Nuevo Tipo de Ingreso"
-                onGuardar={crear}
-                saving={saving}
+                onGuardar={handleCrearIngreso}
+                saving={savingIng}
                 trigger={
                   <button
                     className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-white bg-primary-400 rounded-lg hover:bg-primary-500 transition-colors cursor-pointer"
@@ -445,8 +522,8 @@ function TiposIngresosPage() {
                 <MagnifyingGlassIcon className="text-grey-300 shrink-0" />
                 <input
                   type="text"
-                  value={busqueda}
-                  onChange={(e) => setBusqueda(e.target.value)}
+                  value={busquedaIng}
+                  onChange={(e) => setBusquedaIng(e.target.value)}
                   placeholder="Buscar por nombre..."
                   className="flex-1 text-sm bg-transparent text-grey-700 placeholder:text-grey-300 focus:outline-none"
                 />
@@ -454,41 +531,79 @@ function TiposIngresosPage() {
             </div>
 
             {/* Lista */}
-            {loading ? (
+            {loadingIng ? (
               <LoadingRows count={4} />
             ) : tiposIngresos.length === 0 ? (
               <div className="flex items-center justify-center py-12 text-sm text-grey-400">
-                {busqueda
-                  ? 'No se encontraron resultados para esa búsqueda.'
-                  : 'No hay tipos de ingresos registrados aún.'}
+                {busquedaIng ? 'No se encontraron resultados.' : 'No hay tipos de ingresos registrados aún.'}
               </div>
             ) : (
               tiposIngresos.map((item, idx) => (
-                <ItemRow
-                  key={item.id}
-                  item={item}
-                  onActualizar={actualizar}
-                  onEliminar={eliminar}
-                  saving={saving}
-                  isLast={idx === tiposIngresos.length - 1}
-                />
+                <div key={item.id}>
+                  <div className="flex items-center justify-between px-5 py-4 hover:bg-grey-100 transition-colors">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-sm font-semibold text-grey-700">{item.nombre}</span>
+                      <DependeBadge depende={item.dependeDeSalario} />
+                    </div>
+                    <Tooltip.Provider delayDuration={300}>
+                      <div className="flex items-center gap-1">
+                        <Tooltip.Root>
+                          <Tooltip.Trigger asChild>
+                            <TipoIngresoDialog
+                              titulo={`Editar — ${item.nombre}`}
+                              itemInicial={item}
+                              onGuardar={handleActualizarIngreso}
+                              saving={savingIng}
+                              trigger={
+                                <button className="flex items-center justify-center w-8 h-8 rounded-lg text-grey-400 hover:bg-primary-100 hover:text-primary-500 transition-colors cursor-pointer">
+                                  <Pencil1Icon />
+                                </button>
+                              }
+                            />
+                          </Tooltip.Trigger>
+                          <Tooltip.Portal>
+                            <Tooltip.Content className="bg-grey-700 text-white text-xs px-2 py-1 rounded" sideOffset={4}>
+                              Editar<Tooltip.Arrow className="fill-grey-700" />
+                            </Tooltip.Content>
+                          </Tooltip.Portal>
+                        </Tooltip.Root>
+                        <Tooltip.Root>
+                          <Tooltip.Trigger asChild>
+                            <span>
+                              <EliminarDialog
+                                nombre={item.nombre}
+                                labelTipo="tipo de ingreso"
+                                onEliminar={() => handleEliminarIngreso(item.id)}
+                                saving={savingIng}
+                              />
+                            </span>
+                          </Tooltip.Trigger>
+                          <Tooltip.Portal>
+                            <Tooltip.Content className="bg-grey-700 text-white text-xs px-2 py-1 rounded" sideOffset={4}>
+                              Eliminar<Tooltip.Arrow className="fill-grey-700" />
+                            </Tooltip.Content>
+                          </Tooltip.Portal>
+                        </Tooltip.Root>
+                      </div>
+                    </Tooltip.Provider>
+                  </div>
+                  {idx < tiposIngresos.length - 1 && <Separator.Root className="h-px bg-grey-200 mx-5" />}
+                </div>
               ))
             )}
 
-            {/* Paginación */}
             <Paginacion
-              total={totalItems}
-              pagina={pagina}
-              totalPaginas={totalPaginas}
-              rangoDesde={rangoDesde}
-              rangoHasta={rangoHasta}
-              onPagina={setPagina}
+              total={totalIng}
+              pagina={paginaIng}
+              totalPaginas={totalPaginasIng}
+              rangoDesde={rangoDesdeIng}
+              rangoHasta={rangoHastaIng}
+              onPagina={setPaginaIng}
             />
           </div>
 
           {/* ════════════════════════════
               COLUMNA DERECHA — DEDUCCIONES
-              Pendiente de implementación en el backend
           ════════════════════════════ */}
           <div
             className="bg-white rounded-xl border border-grey-200 overflow-hidden"
@@ -502,41 +617,129 @@ function TiposIngresosPage() {
                 </div>
                 <div className="flex flex-col gap-0.5">
                   <h2 className="text-base font-bold text-grey-700">Tipos de Deducciones</h2>
-                  <span className="text-xs text-grey-400">Próximamente disponible</span>
+                  <span className="text-xs text-grey-400">
+                    {loadingDed ? '...' : `${totalDed} registrado${totalDed !== 1 ? 's' : ''}`}
+                  </span>
                 </div>
               </div>
-              <button
-                disabled
-                className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-white bg-primary-400 rounded-lg opacity-40 cursor-not-allowed"
-              >
-                <PlusIcon />
-                Nuevo
-              </button>
+              <TipoDeduccionDialog
+                titulo="Nueva Deducción"
+                onGuardar={handleCrearDeduccion}
+                saving={savingDed}
+                trigger={
+                  <button
+                    className="flex items-center gap-2 px-3 py-2 text-sm font-semibold text-white bg-primary-400 rounded-lg hover:bg-primary-500 transition-colors cursor-pointer"
+                    style={{ boxShadow: '0px 2px 8px 0px rgba(0,128,128,0.20)' }}
+                  >
+                    <PlusIcon />
+                    Nuevo
+                  </button>
+                }
+              />
             </div>
 
-            {/* Placeholder */}
-            <div className="flex flex-col items-center justify-center gap-3 py-16 px-6 text-center">
-              <div className="flex items-center justify-center w-12 h-12 rounded-full bg-grey-100">
-                <ArrowDownIcon className="text-grey-400 w-5 h-5" />
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-sm font-semibold text-grey-600">
-                  Módulo en desarrollo
-                </span>
-                <span className="text-xs text-grey-400 max-w-xs">
-                  El backend de tipos de deducciones está siendo implementado.
-                  Estará disponible en la próxima versión.
-                </span>
+            {/* Buscador */}
+            <div className="px-5 py-3 border-b border-grey-200">
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-grey-200 bg-white focus-within:border-primary-400 transition-colors">
+                <MagnifyingGlassIcon className="text-grey-300 shrink-0" />
+                <input
+                  type="text"
+                  value={busquedaDed}
+                  onChange={(e) => setBusquedaDed(e.target.value)}
+                  placeholder="Buscar por nombre..."
+                  className="flex-1 text-sm bg-transparent text-grey-700 placeholder:text-grey-300 focus:outline-none"
+                />
               </div>
             </div>
 
-            {/* Footer vacío para mantener la altura consistente */}
-            <div className="border-t border-grey-200 px-5 py-3">
-              <span className="text-xs text-grey-400">0 registrados</span>
-            </div>
+            {/* Lista */}
+            {loadingDed ? (
+              <LoadingRows count={4} />
+            ) : tiposDeducciones.length === 0 ? (
+              <div className="flex items-center justify-center py-12 text-sm text-grey-400">
+                {busquedaDed ? 'No se encontraron resultados.' : 'No hay tipos de deducciones registrados aún.'}
+              </div>
+            ) : (
+              tiposDeducciones.map((item, idx) => (
+                <div key={item.id}>
+                  <div className="flex items-center justify-between px-5 py-4 hover:bg-grey-100 transition-colors">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-sm font-semibold text-grey-700">{item.nombre}</span>
+                      <span className="text-xs text-grey-400">
+                        {item.tasa ? `Tasa: ${item.tasa}` : '—'}
+                      </span>
+                    </div>
+                    <Tooltip.Provider delayDuration={300}>
+                      <div className="flex items-center gap-1">
+                        <Tooltip.Root>
+                          <Tooltip.Trigger asChild>
+                            <TipoDeduccionDialog
+                              titulo={`Editar — ${item.nombre}`}
+                              itemInicial={item}
+                              onGuardar={handleActualizarDeduccion}
+                              saving={savingDed}
+                              trigger={
+                                <button className="flex items-center justify-center w-8 h-8 rounded-lg text-grey-400 hover:bg-primary-100 hover:text-primary-500 transition-colors cursor-pointer">
+                                  <Pencil1Icon />
+                                </button>
+                              }
+                            />
+                          </Tooltip.Trigger>
+                          <Tooltip.Portal>
+                            <Tooltip.Content className="bg-grey-700 text-white text-xs px-2 py-1 rounded" sideOffset={4}>
+                              Editar<Tooltip.Arrow className="fill-grey-700" />
+                            </Tooltip.Content>
+                          </Tooltip.Portal>
+                        </Tooltip.Root>
+                        <Tooltip.Root>
+                          <Tooltip.Trigger asChild>
+                            <span>
+                              <EliminarDialog
+                                nombre={item.nombre}
+                                labelTipo="deducción"
+                                onEliminar={() => handleEliminarDeduccion(item.id)}
+                                saving={savingDed}
+                              />
+                            </span>
+                          </Tooltip.Trigger>
+                          <Tooltip.Portal>
+                            <Tooltip.Content className="bg-grey-700 text-white text-xs px-2 py-1 rounded" sideOffset={4}>
+                              Eliminar<Tooltip.Arrow className="fill-grey-700" />
+                            </Tooltip.Content>
+                          </Tooltip.Portal>
+                        </Tooltip.Root>
+                      </div>
+                    </Tooltip.Provider>
+                  </div>
+                  {idx < tiposDeducciones.length - 1 && <Separator.Root className="h-px bg-grey-200 mx-5" />}
+                </div>
+              ))
+            )}
+
+            <Paginacion
+              total={totalDed}
+              pagina={paginaDed}
+              totalPaginas={totalPaginasDed}
+              rangoDesde={rangoDesdeDed}
+              rangoHasta={rangoHastaDed}
+              onPagina={setPaginaDed}
+            />
           </div>
 
         </div>
+
+        {/* ── Exportar ── */}
+        <div className="flex items-center gap-3">
+          <button className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-grey-600 rounded-xl border border-grey-200 hover:bg-grey-100 transition-colors cursor-pointer">
+            <FileTextIcon className="text-grey-500" />
+            Exportar en PDF
+          </button>
+          <button className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-primary-500 rounded-xl border border-primary-300 hover:bg-primary-100 transition-colors cursor-pointer">
+            <DownloadIcon className="text-primary-400" />
+            Exportar en XLS
+          </button>
+        </div>
+
       </div>
     </div>
   )
