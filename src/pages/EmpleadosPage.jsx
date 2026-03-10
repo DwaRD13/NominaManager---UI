@@ -15,6 +15,7 @@ import {
 } from '@radix-ui/react-icons'
 import { useEmpleados } from '../hooks/useEmpleados.js'
 import { useToast } from '../hooks/useToast.jsx'
+import { validarCedulaDominicana } from '../utils/validations.js'
 
 // Importación lazy de las funciones de exportación — las librerías (jsPDF, xlsx)
 // solo se cargan cuando el usuario hace click, no al abrir la página.
@@ -114,6 +115,11 @@ function EmpleadoDialog({ trigger, titulo = 'Nuevo Empleado', empleadoInicial = 
     if (!form.nombre.trim() || !form.cedula.trim() || !form.salarioMensual) {
       setFormError('Nombre, cédula y salario son obligatorios.')
       return
+    }
+
+    if(!validarCedulaDominicana(form.cedula)) {
+      setFormError('La cédula ingresada no es válida.')
+      return;
     }
 
     const payload = {
