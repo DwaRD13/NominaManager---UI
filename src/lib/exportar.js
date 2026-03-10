@@ -174,3 +174,181 @@ export function exportarEmpleadosXLSX(empleados, { nombreArchivo = 'empleados' }
 
   writeFile(wb, `${nombreArchivo}_${fechaGeneracion.replace(/\//g, '-')}.xlsx`)
 }
+
+/**
+ * Exporta la lista de Tipos de Ingresos y Deducciones a un archivo PDF.
+ * @param {Array} ingresos
+ * @param {Array} deducciones
+ * @param {{ titulo?: string, subtitulo?: string }} opciones
+ */
+export function exportarTiposPDF(ingresos, deducciones, { titulo = 'Tipos de Ingresos y Deducciones', subtitulo = '' } = {}) {
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+
+  const fechaGeneracion = new Date().toLocaleDateString('es-DO', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+  })
+
+  // ── Encabezado del documento ──
+  doc.setFillColor(...COLOR_PRIMARY)
+  doc.rect(0, 0, 210, 22, 'F')
+
+  doc.setTextColor(...COLOR_WHITE)
+  doc.setFontSize(14)
+  doc.setFont('helvetica', 'bold')
+  doc.text(titulo, 14, 10)
+
+  doc.setFontSize(8)
+  doc.setFont('helvetica', 'normal')
+  doc.text(`Sistema de Nóminas — Generado el ${fechaGeneracion}`, 14, 16)
+
+  if (subtitulo) {
+    doc.text(subtitulo, 150, 16)
+  }
+
+  // ── Tabla Ingresos ──
+  doc.setTextColor(...COLOR_GREY_700)
+  doc.setFontSize(10)
+  doc.setFont('helvetica', 'bold')
+  doc.text('Tipos de Ingresos', 14, 32)
+
+  const columnas = [
+    { header: 'Nombre', dataKey: 'nombre' },
+    { header: 'Tipo', dataKey: 'tipo' },
+    { header: 'Estado', dataKey: 'estado' },
+  ]
+
+  const filasIngresos = ingresos.map((item) => ({
+    nombre: item.nombre ?? '—',
+    tipo: item.dependeDeSalario ? 'Gravable' : 'No gravable',
+    estado: item.estado ?? '—',
+  }))
+
+  autoTable(doc, {
+    columns: columnas,
+    body: filasIngresos,
+    startY: 36,
+    theme: 'grid',
+    styles: {
+      font: 'helvetica',
+      fontSize: 8,
+      cellPadding: 3,
+      valign: 'middle',
+      textColor: COLOR_GREY_700,
+    },
+    headStyles: {
+      fillColor: COLOR_GREY_700,
+      textColor: COLOR_WHITE,
+      fontStyle: 'bold',
+      fontSize: 8,
+      halign: 'left',
+    },
+    alternateRowStyles: {
+      fillColor: COLOR_GREY_100,
+    },
+    columnStyles: {
+      estado: { halign: 'center' },
+    },
+  })
+
+  const finalY = doc.lastAutoTable.finalY || 36
+
+  // ── Tabla Deducciones ──
+  doc.setTextColor(...COLOR_GREY_700)
+  doc.setFontSize(10)
+  doc.setFont('helvetica', 'bold')
+  doc.text('Tipos de Deducciones', 14, finalY + 12)
+
+  const filasDeducciones = deducciones.map((item) => ({
+    nombre: item.nombre ?? '—',
+    tipo: item.dependeDeSalario ? 'Gravable' : 'No gravable',
+    estado: item.estado ?? '—',
+  }))
+
+  autoTable(doc, {
+    columns: columnas,
+    body: filasDeducciones,
+    startY: finalY + 16,
+    theme: 'grid',
+    styles: {
+      font: 'helvetica',
+      fontSize: 8,
+      cellPadding: 3,
+      valign: 'middle',
+      textColor: COLOR_GREY_700,
+    },
+    headStyles: {
+      fillColor: COLOR_GREY_700,
+      textColor: COLOR_WHITE,
+      fontStyle: 'bold',
+      fontSize: 8,
+      halign: 'left',
+    },
+    alternateRowStyles: {
+      fillColor: COLOR_GREY_100,
+    },
+    columnStyles: {
+      estado: { halign: 'center' },
+    },
+  })
+
+  // Footer con número de página
+  const pageCount = doc.internal.getNumberOfPages()
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i)
+    doc.setFontSize(7)
+    doc.setTextColor(...COLOR_GREY_400)
+    doc.text(
+      `Página ${i} de ${pageCount}  —  Ingresos: ${ingresos.length} / Deducciones: ${deducciones.length}`,
+      14,
+      doc.internal.pageSize.height - 8,
+    )
+  }
+
+  doc.save(`tipos_ingresos_deducciones_${fechaGeneracion.replace(/\//g, '-')}.pdf`)
+}
+
+/**
+ * Exporta la lista de Tipos de Ingresos y Deducciones a un archivo XLSX.
+ * @param {Array} ingresos
+ * @param {Array} deducciones
+ * @param {{ nombreArchivo?: string }} opciones
+ */
+export function exportarTiposXLSX(ingresos, deducciones, { nombreArchivo = 'tipos_ingresos_deducciones' } = {}) {
+  const fechaGeneracion = new Date().toLocaleDateString('es-DO', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+  })
+
+  // ── Hoja Ingresos ──
+  const filasIngresos = ingresos.map((item) => ({
+    'Nombre': item.nombre ?? '',
+    'Tipo': item.dependeDeSalario ? 'Gravable' : 'No gravable',
+    'Estado': item.estado ?? '',
+  }))
+
+  const wsIngresos = utils.json_to_sheet(filasIngresos)
+  wsIngresos['!cols'] = [
+    { wch: 35 }, // Nombre
+    { wch: 15 }, // Tipo
+    { wch: 12 }, // Estado
+  ]
+
+  // ── Hoja Deducciones ──
+  const filasDeducciones = deducciones.map((item) => ({
+    'Nombre': item.nombre ?? '',
+    'Tipo': item.dependeDeSalario ? 'Gravable' : 'No gravable',
+    'Estado': item.estado ?? '',
+  }))
+
+  const wsDeducciones = utils.json_to_sheet(filasDeducciones)
+  wsDeducciones['!cols'] = [
+    { wch: 35 }, // Nombre
+    { wch: 15 }, // Tipo
+    { wch: 12 }, // Estado
+  ]
+
+  const wb = utils.book_new()
+  utils.book_append_sheet(wb, wsIngresos, 'Ingresos')
+  utils.book_append_sheet(wb, wsDeducciones, 'Deducciones')
+
+  writeFile(wb, `${nombreArchivo}_${fechaGeneracion.replace(/\//g, '-')}.xlsx`)
+}

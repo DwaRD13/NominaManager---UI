@@ -404,6 +404,7 @@ function TiposIngresosPage() {
   // ── Hook Ingresos (backend real) ──
   const {
     tiposIngresos,
+    tiposIngresosFiltrados,
     loading:      loadingIng,
     error:        errorIng,
     busqueda:     busquedaIng,
@@ -423,6 +424,7 @@ function TiposIngresosPage() {
   // ── Hook Deducciones (mock local) ──
   const {
     tiposDeducciones,
+    tiposDeduccionesFiltrados,
     loading:      loadingDed,
     busqueda:     busquedaDed,
     setBusqueda:  setBusquedaDed,
@@ -466,6 +468,17 @@ function TiposIngresosPage() {
     const item = tiposDeducciones.find((d) => d.id === id)
     await eliminarDed(id)
     toast({ title: 'Deducción eliminada', description: `"${item?.nombre}" fue eliminada.`, variant: 'error' })
+  }
+
+  // ── Exportación ──
+  async function handleExportarPDF() {
+    const { exportarTiposPDF } = await import('../lib/exportar.js')
+    exportarTiposPDF(tiposIngresosFiltrados, tiposDeduccionesFiltrados)
+  }
+
+  async function handleExportarXLSX() {
+    const { exportarTiposXLSX } = await import('../lib/exportar.js')
+    exportarTiposXLSX(tiposIngresosFiltrados, tiposDeduccionesFiltrados)
   }
 
   return (
@@ -740,11 +753,17 @@ function TiposIngresosPage() {
 
         {/* ── Exportar ── */}
         <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-grey-600 rounded-xl border border-grey-200 hover:bg-grey-100 transition-colors cursor-pointer">
+          <button 
+            onClick={handleExportarPDF}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-grey-600 rounded-xl border border-grey-200 hover:bg-grey-100 transition-colors cursor-pointer"
+          >
             <FileTextIcon className="text-grey-500" />
             Exportar en PDF
           </button>
-          <button className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-primary-500 rounded-xl border border-primary-300 hover:bg-primary-100 transition-colors cursor-pointer">
+          <button 
+            onClick={handleExportarXLSX}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-primary-500 rounded-xl border border-primary-300 hover:bg-primary-100 transition-colors cursor-pointer"
+          >
             <DownloadIcon className="text-primary-400" />
             Exportar en XLS
           </button>
