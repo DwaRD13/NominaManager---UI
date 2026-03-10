@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { empleadosService } from '../services/empleados.service.js'
 import { tiposIngresosService } from '../services/tiposIngresos.service.js'
+import { tiposDeduccionesService } from '../services/tiposDeducciones.service.js'
 
 export function useDashboard() {
   const [data, setData] = useState({
@@ -9,7 +10,7 @@ export function useDashboard() {
     totalNomina: 0,
     empleadosActivos: 0,
     tiposIngresosCount: 0,
-    tiposDeduccionesCount: 5, // Mock por ahora
+    tiposDeduccionesCount: 0,
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -19,12 +20,16 @@ export function useDashboard() {
       setLoading(true)
       setError(null)
       try {
-        const [empleadosData, ingresosData] = await Promise.all([
+        const [empleadosData, ingresosData, deduccionesData] = await Promise.all([
           empleadosService.getAll().catch((e) => {
             if (e.response?.status === 404) return []
             throw e
           }),
           tiposIngresosService.getAll().catch((e) => {
+            if (e.response?.status === 404) return []
+            throw e
+          }),
+          tiposDeduccionesService.getAll().catch((e) => {
             if (e.response?.status === 404) return []
             throw e
           }),
@@ -39,7 +44,7 @@ export function useDashboard() {
           totalNomina,
           empleadosActivos: activos.length,
           tiposIngresosCount: ingresosData.length,
-          tiposDeduccionesCount: 5, // Aún no hay backend
+          tiposDeduccionesCount: deduccionesData.length,
         })
       } catch (err) {
         setError(err.response?.data?.message ?? 'Error al cargar los datos del dashboard')

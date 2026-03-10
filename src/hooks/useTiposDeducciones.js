@@ -1,75 +1,145 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { tiposDeduccionesService } from '../services/tiposDeducciones.service.js'
 
 const PAGE_SIZE = 8
 
-/** @typedef {{ id: number, nombre: string, tasa: string }} TipoDeduccion */
-
-const MOCK_INICIAL = [
-  { id: 1, nombre: 'Seguro Familiar de Salud (SFS)', tasa: '3.04%'    },
-  { id: 2, nombre: 'Fondo de Pensiones (AFP)',        tasa: '2.87%'    },
-  { id: 3, nombre: 'Impuesto sobre la Renta (ISR)',   tasa: 'Variable' },
-  { id: 4, nombre: 'Seguro de Riesgos Laborales',     tasa: '1.20%'    },
-  { id: 5, nombre: 'Préstamo Empresarial',             tasa: 'Monto fijo' },
-]
-
-let _nextId = 100
-
 /**
- * Hook que centraliza la lógica UI del módulo de tipos de deducciones.
- * Opera con estado local (mock) — sin backend por ahora.
+ * Hook que centraliza toda la lógica del módulo de tipos de deducciones:
+ * carga de datos, búsqueda, paginación y CRUD.
+ *
+ * @returns {{
+ *   tiposDeducciones: import('../types').TipoDeduccion[],
+ *   tiposDeduccionesFiltrados: import('../types').TipoDeduccion[],
+ *   loading: boolean,
+ *   error: string | null,
+ *   busqueda: string,
+ *   setBusqueda: (v: string) => void,
+ *   pagina: number,
+ *   setPagina: (v: number) => void,
+ *   totalPaginas: number,
+ *   totalItems: number,
+ *   rangoDesde: number,
+ *   rangoHasta: number,
+ *   crear: (data: import('../types').TipoDeduccionPayload) => Promise<void>,
+ *   actualizar: (data: import('../types').TipoDeduccionUpdatePayload) => Promise<void>,
+ *   eliminar: (id: number) => Promise<void>,
+ *   saving: boolean,
+ *   saveError: string | null,
+ * }}
  */
 export function useTiposDeducciones() {
-  const [todos, setTodos] = useState(MOCK_INICIAL)
-  const [busqueda, setBusquedaRaw] = useState('')
-  const [pagina, setPagina] = useState(1)
-  const [saving, setSaving] = useState(false)
+  // ── Estado principal ──
+  const [todos, setTodos] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
-  // ── Filtrado ──
-  const filtrados = todos.filter((d) =>
-    busqueda.trim() === '' || d.nombre.toLowerCase().includes(busqueda.toLowerCase())
-  )
+  // ── Filtros ──
+  const [busqueda, setBusqueda] = useState('')
 
   // ── Paginación ──
-  const totalItems    = filtrados.length
-  const totalPaginas  = Math.max(1, Math.ceil(totalItems / PAGE_SIZE))
-  const paginaSegura  = Math.min(pagina, totalPaginas)
-  const rangoDesde    = totalItems === 0 ? 0 : (paginaSegura - 1) * PAGE_SIZE + 1
-  const rangoHasta    = Math.min(paginaSegura * PAGE_SIZE, totalItems)
-  const tiposDeducciones = filtrados.slice((paginaSegura - 1) * PAGE_SIZE, paginaSegura * PAGE_SIZE)
+  const [pagina, setPagina] = useState(1)
 
-  function setBusqueda(v) {
-    setBusquedaRaw(v)
+  // ── Estado de guardado ──
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState(null)
+
+  // ── Carga inicial ──
+  useEffect(() => {
+    cargarTiposDeducciones()
+  }, [])
+
+  async function cargarTiposDeducciones() {
+    setLoading(true)
+    setError(null)
+    try {
+      const data = await tiposDeduccionesService.getAll()
+      setTodos(data)
+    } catch (e) {
+      // 404 del backend cuando no hay registros — no es error real
+      if (e.response?.status === 404) {
+        setTodos([])
+      } else {
+        setError(e.response?.data?.message ?? 'Error al cargar los tipos de deducciones')
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // ── Filtrado por búsqueda ──
+  const filtrados = todos.filter((tipo) => {
+    if (busqueda.trim() === '') return true
+    return tipo.nombre?.toLowerCase().includes(busqueda.toLowerCase())
+  })
+
+  // ── Paginación ──
+  const totalItems = filtrados.length
+  const totalPaginas = Math.max(1, Math.ceil(totalItems / PAGE_SIZE))
+  const paginaSegura = Math.min(pagina, totalPaginas)
+  const rangoDesde = totalItems === 0 ? 0 : (paginaSegura - 1) * PAGE_SIZE + 1
+  const rangoHasta = Math.min(paginaSegura * PAGE_SIZE, totalItems)
+  const tiposDeducciones = filtrados.slice((paginaSegura - 1) * PAGE_SIZE, paginaSegura * PAGE_SIZE)
+  // Sin paginar — para exportar o mostrar conteos reales
+  const tiposDeduccionesFiltrados = filtrados
+
+  function handleSetBusqueda(v) {
+    setBusqueda(v)
     setPagina(1)
   }
 
-  // ── CRUD mock ──
-  async function crear({ nombre, tasa }) {
+  // ── CRUD ──
+  async function crear(data) {
     setSaving(true)
-    await _delay()
-    setTodos((prev) => [...prev, { id: ++_nextId, nombre, tasa }])
-    setSaving(false)
+    setSaveError(null)
+    try {
+      const nuevo = await tiposDeduccionesService.create(data)
+      setTodos((prev) => [...prev, nuevo])
+    } catch (e) {
+      const msg = e.response?.data?.message ?? 'Error al crear el tipo de deducción'
+      setSaveError(msg)
+      throw new Error(msg)
+    } finally {
+      setSaving(false)
+    }
   }
 
-  async function actualizar({ id, nombre, tasa }) {
+  async function actualizar(data) {
     setSaving(true)
-    await _delay()
-    setTodos((prev) => prev.map((d) => d.id === id ? { ...d, nombre, tasa } : d))
-    setSaving(false)
+    setSaveError(null)
+    try {
+      const actualizado = await tiposDeduccionesService.update(data)
+      setTodos((prev) => prev.map((t) => (t.id === actualizado.id ? actualizado : t)))
+    } catch (e) {
+      const msg = e.response?.data?.message ?? 'Error al actualizar el tipo de deducción'
+      setSaveError(msg)
+      throw new Error(msg)
+    } finally {
+      setSaving(false)
+    }
   }
 
   async function eliminar(id) {
     setSaving(true)
-    await _delay()
-    setTodos((prev) => prev.filter((d) => d.id !== id))
-    setSaving(false)
+    setSaveError(null)
+    try {
+      await tiposDeduccionesService.remove(id)
+      setTodos((prev) => prev.filter((t) => t.id !== id))
+    } catch (e) {
+      const msg = e.response?.data?.message ?? 'Error al eliminar el tipo de deducción'
+      setSaveError(msg)
+      throw new Error(msg)
+    } finally {
+      setSaving(false)
+    }
   }
 
   return {
     tiposDeducciones,
-    loading: false,
-    error: null,
+    tiposDeduccionesFiltrados,
+    loading,
+    error,
     busqueda,
-    setBusqueda,
+    setBusqueda: handleSetBusqueda,
     pagina: paginaSegura,
     setPagina,
     totalPaginas,
@@ -80,10 +150,6 @@ export function useTiposDeducciones() {
     actualizar,
     eliminar,
     saving,
+    saveError,
   }
-}
-
-/** Simula latencia de red mínima para feedback visual del spinner */
-function _delay(ms = 300) {
-  return new Promise((res) => setTimeout(res, ms))
 }

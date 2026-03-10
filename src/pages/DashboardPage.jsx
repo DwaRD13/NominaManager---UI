@@ -192,8 +192,8 @@ function DashboardPage() {
               <div className="flex items-center gap-3">
                 <span className="text-grey-400 text-sm font-medium">Deducciones estimadas:</span>
                 <span className="text-base font-bold text-grey-600">
-                  {/* Mock for now since deductions are not implemented backend-wise */}
-                  -$0.00
+                  {/* Estimación básica de ley (SFS 3.04% + AFP 2.87% = 5.91%) */}
+                  -${loading ? '...' : formatCurrency(data.totalNomina * 0.0591)}
                 </span>
               </div>
             </div>

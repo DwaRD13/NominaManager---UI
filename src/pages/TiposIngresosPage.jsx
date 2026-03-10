@@ -157,7 +157,7 @@ function TipoIngresoDialog({ trigger, titulo, itemInicial = null, onGuardar, sav
 // ─────────────────────────────────────────────
 // Sub: Dialog Nuevo / Editar — DEDUCCIONES
 // ─────────────────────────────────────────────
-const FORM_DEDUCCION_VACIO = { nombre: '', tasa: '' }
+const FORM_DEDUCCION_VACIO = { nombre: '', dependeDeSalario: false }
 
 function TipoDeduccionDialog({ trigger, titulo, itemInicial = null, onGuardar, saving }) {
   const [open, setOpen]           = useState(false)
@@ -169,7 +169,7 @@ function TipoDeduccionDialog({ trigger, titulo, itemInicial = null, onGuardar, s
     if (val) {
       setForm(
         itemInicial
-          ? { nombre: itemInicial.nombre ?? '', tasa: itemInicial.tasa ?? '' }
+          ? { nombre: itemInicial.nombre ?? '', dependeDeSalario: itemInicial.dependeDeSalario ?? false }
           : FORM_DEDUCCION_VACIO
       )
       setFormError(null)
@@ -185,7 +185,8 @@ function TipoDeduccionDialog({ trigger, titulo, itemInicial = null, onGuardar, s
     const payload = {
       ...(itemInicial ? { id: itemInicial.id } : {}),
       nombre: form.nombre.trim(),
-      tasa: form.tasa.trim(),
+      dependeDeSalario: form.dependeDeSalario,
+      estado: itemInicial?.estado ?? 'Activo',
     }
     try {
       setFormError(null)
@@ -227,16 +228,27 @@ function TipoDeduccionDialog({ trigger, titulo, itemInicial = null, onGuardar, s
               />
             </div>
 
-            {/* Tasa */}
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-semibold text-grey-600">Tasa o monto</label>
-              <input
-                type="text"
-                value={form.tasa}
-                onChange={(e) => set('tasa', e.target.value)}
-                placeholder="Ej: 3.04% o Monto fijo"
-                className="w-full px-3 py-2 text-sm rounded-lg border border-grey-200 bg-white text-grey-700 placeholder:text-grey-300 focus:outline-none focus:border-primary-400 transition-colors"
-              />
+            {/* Toggle depende de salario */}
+            <div className="flex items-center justify-between px-3 py-2.5 rounded-lg border border-grey-200 bg-grey-100">
+              <div className="flex flex-col gap-0.5">
+                <span className="text-xs font-semibold text-grey-700">Depende del salario</span>
+                <span className="text-xs text-grey-400">Indica si esta deducción aplica sobre el salario</span>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={form.dependeDeSalario}
+                onClick={() => set('dependeDeSalario', !form.dependeDeSalario)}
+                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none ${
+                  form.dependeDeSalario ? 'bg-primary-400' : 'bg-grey-300'
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                    form.dependeDeSalario ? 'translate-x-4' : 'translate-x-0'
+                  }`}
+                />
+              </button>
             </div>
 
             {formError && <p className="text-xs text-grey-600 font-medium">{formError}</p>}
@@ -663,11 +675,9 @@ function TiposIngresosPage() {
               tiposDeducciones.map((item, idx) => (
                 <div key={item.id}>
                   <div className="flex items-center justify-between px-5 py-4 hover:bg-grey-100 transition-colors">
-                    <div className="flex flex-col gap-0.5">
+                    <div className="flex flex-col gap-1">
                       <span className="text-sm font-semibold text-grey-700">{item.nombre}</span>
-                      <span className="text-xs text-grey-400">
-                        {item.tasa ? `Tasa: ${item.tasa}` : '—'}
-                      </span>
+                      <DependeBadge depende={item.dependeDeSalario} />
                     </div>
                     <Tooltip.Provider delayDuration={300}>
                       <div className="flex items-center gap-1">
