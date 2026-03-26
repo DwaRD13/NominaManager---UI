@@ -176,6 +176,15 @@ export function exportarEmpleadosXLSX(empleados, { nombreArchivo = 'empleados' }
 }
 
 /**
+ * Formatea un número como porcentaje
+ * @param {number | null} valor
+ */
+function formatPorcentaje(valor) {
+  if (valor == null || valor === undefined) return '—'
+  return `${valor}%`
+}
+
+/**
  * Exporta la lista de Tipos de Ingresos y Deducciones a un archivo PDF.
  * @param {Array} ingresos
  * @param {Array} deducciones
@@ -214,12 +223,14 @@ export function exportarTiposPDF(ingresos, deducciones, { titulo = 'Tipos de Ing
   const columnas = [
     { header: 'Nombre', dataKey: 'nombre' },
     { header: 'Tipo', dataKey: 'tipo' },
+    { header: 'Porcentaje', dataKey: 'porcentaje' },
     { header: 'Estado', dataKey: 'estado' },
   ]
 
   const filasIngresos = ingresos.map((item) => ({
     nombre: item.nombre ?? '—',
     tipo: item.dependeDeSalario ? 'Gravable' : 'No gravable',
+    porcentaje: formatPorcentaje(item.porcentaje),
     estado: item.estado ?? '—',
   }))
 
@@ -246,6 +257,7 @@ export function exportarTiposPDF(ingresos, deducciones, { titulo = 'Tipos de Ing
       fillColor: COLOR_GREY_100,
     },
     columnStyles: {
+      porcentaje: { halign: 'center' },
       estado: { halign: 'center' },
     },
   })
@@ -261,6 +273,7 @@ export function exportarTiposPDF(ingresos, deducciones, { titulo = 'Tipos de Ing
   const filasDeducciones = deducciones.map((item) => ({
     nombre: item.nombre ?? '—',
     tipo: item.dependeDeSalario ? 'Gravable' : 'No gravable',
+    porcentaje: formatPorcentaje(item.porcentaje),
     estado: item.estado ?? '—',
   }))
 
@@ -287,6 +300,7 @@ export function exportarTiposPDF(ingresos, deducciones, { titulo = 'Tipos de Ing
       fillColor: COLOR_GREY_100,
     },
     columnStyles: {
+      porcentaje: { halign: 'center' },
       estado: { halign: 'center' },
     },
   })
@@ -322,6 +336,7 @@ export function exportarTiposXLSX(ingresos, deducciones, { nombreArchivo = 'tipo
   const filasIngresos = ingresos.map((item) => ({
     'Nombre': item.nombre ?? '',
     'Tipo': item.dependeDeSalario ? 'Gravable' : 'No gravable',
+    'Porcentaje (%)': item.porcentaje != null ? item.porcentaje : '',
     'Estado': item.estado ?? '',
   }))
 
@@ -329,6 +344,7 @@ export function exportarTiposXLSX(ingresos, deducciones, { nombreArchivo = 'tipo
   wsIngresos['!cols'] = [
     { wch: 35 }, // Nombre
     { wch: 15 }, // Tipo
+    { wch: 15 }, // Porcentaje
     { wch: 12 }, // Estado
   ]
 
@@ -336,6 +352,7 @@ export function exportarTiposXLSX(ingresos, deducciones, { nombreArchivo = 'tipo
   const filasDeducciones = deducciones.map((item) => ({
     'Nombre': item.nombre ?? '',
     'Tipo': item.dependeDeSalario ? 'Gravable' : 'No gravable',
+    'Porcentaje (%)': item.porcentaje != null ? item.porcentaje : '',
     'Estado': item.estado ?? '',
   }))
 
@@ -343,6 +360,7 @@ export function exportarTiposXLSX(ingresos, deducciones, { nombreArchivo = 'tipo
   wsDeducciones['!cols'] = [
     { wch: 35 }, // Nombre
     { wch: 15 }, // Tipo
+    { wch: 15 }, // Porcentaje
     { wch: 12 }, // Estado
   ]
 
