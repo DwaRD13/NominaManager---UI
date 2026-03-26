@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react'
 import { transaccionesService } from '../services/transacciones.service.js'
+import { empleadosService } from '../services/empleados.service.js'
+import { tiposIngresosService } from '../services/tiposIngresos.service.js'
+import { tiposDeduccionesService } from '../services/tiposDeducciones.service.js'
 
 const PAGE_SIZE = 8
 
 /**
  * Hook que centraliza toda la lógica del módulo de transacciones:
- * carga de datos, búsqueda, filtrado por tipo (ingreso/deducción), paginación.
+ * carga de datos, búsqueda, filtrado por tipo (ingreso/deducción), paginación y CRUD.
  *
  * @returns {{
  *   transacciones: Transaccion[],
@@ -24,6 +27,11 @@ const PAGE_SIZE = 8
  *   rangoHasta: number,
  *   saving: boolean,
  *   saveError: string | null,
+ *   // Datos para el modal
+ *   empleados: import('../types').Empleado[],
+ *   tiposIngresos: import('../types').TipoIngreso[],
+ *   tiposDeducciones: import('../types').TipoDeduccion[],
+ *   crear: (data: TransaccionPayload) => Promise<void>,
  * }}
  */
 export function useTransacciones() {
@@ -43,9 +51,17 @@ export function useTransacciones() {
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState(null)
 
+  // ── Datos para el modal ──
+  const [empleados, setEmpleados] = useState([])
+  const [tiposIngresos, setTiposIngresos] = useState([])
+  const [tiposDeducciones, setTiposDeducciones] = useState([])
+
   // ── Carga inicial ──
   useEffect(() => {
-    cargarTransacciones()
+    Promise.all([
+      cargarTransacciones(),
+      cargarDatosModal(),
+    ])
   }, [])
 
   async function cargarTransacciones() {
@@ -58,6 +74,24 @@ export function useTransacciones() {
       setError(e.response?.data?.message ?? 'Error al cargar las transacciones')
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function cargarDatosModal() {
+    try {
+      // Cargar empleados activos
+      const [emps, ingresos, deducciones] = await Promise.all([
+        empleadosService.getAll(),
+        tiposIngresosService.getAll(),
+        tiposDeduccionesService.getAll(),
+      ])
+      
+      // Filtrar solo empleados activos
+      setEmpleados(emps.filter(e => e.estado?.toUpperCase() === 'ACTIVO'))
+      setTiposIngresos(ingresos)
+      setTiposDeducciones(deducciones)
+    } catch (e) {
+      console.error('Error al cargar datos para modal:', e)
     }
   }
 
@@ -93,6 +127,24 @@ export function useTransacciones() {
     setPagina(1)
   }
 
+  // ── CRUD: Crear ──
+  async function crear(data) {
+    setSaving(true)
+    setSaveError(null)
+    try {
+      const nueva = await transaccionesService.create(data)
+      // Recargar transacciones para ver la nueva
+      await cargarTransacciones()
+      return nueva
+    } catch (e) {
+      const msg = e.response?.data?.message ?? 'Error al crear la transacción'
+      setSaveError(msg)
+      throw new Error(msg)
+    } finally {
+      setSaving(false)
+    }
+  }
+
   return {
     transacciones,
     transaccionesFiltradas: filtradas,
@@ -110,5 +162,10 @@ export function useTransacciones() {
     rangoHasta,
     saving,
     saveError,
+    // Datos para el modal
+    empleados,
+    tiposIngresos,
+    tiposDeducciones,
+    crear,
   }
 }
