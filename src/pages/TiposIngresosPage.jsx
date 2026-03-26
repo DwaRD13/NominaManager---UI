@@ -35,7 +35,7 @@ function DependeBadge({ depende }) {
 // ─────────────────────────────────────────────
 // Sub: Dialog Nuevo / Editar — INGRESOS
 // ─────────────────────────────────────────────
-const FORM_INGRESO_VACIO = { nombre: '', dependeDeSalario: false }
+const FORM_INGRESO_VACIO = { nombre: '', dependeDeSalario: false, porcentaje: null }
 
 function TipoIngresoDialog({ trigger, titulo, itemInicial = null, onGuardar, saving }) {
   const [open, setOpen]         = useState(false)
@@ -47,7 +47,11 @@ function TipoIngresoDialog({ trigger, titulo, itemInicial = null, onGuardar, sav
     if (val) {
       setForm(
         itemInicial
-          ? { nombre: itemInicial.nombre ?? '', dependeDeSalario: itemInicial.dependeDeSalario ?? false }
+          ? { 
+              nombre: itemInicial.nombre ?? '', 
+              dependeDeSalario: itemInicial.dependeDeSalario ?? false,
+              porcentaje: itemInicial.porcentaje ?? null
+            }
           : FORM_INGRESO_VACIO
       )
       setFormError(null)
@@ -65,6 +69,8 @@ function TipoIngresoDialog({ trigger, titulo, itemInicial = null, onGuardar, sav
       nombre: form.nombre.trim(),
       dependeDeSalario: form.dependeDeSalario,
       estado: itemInicial?.estado ?? 'Activo',
+      // Solo enviar porcentaje si depende del salario
+      ...(form.dependeDeSalario ? { porcentaje: form.porcentaje } : { porcentaje: null }),
     }
     try {
       setFormError(null)
@@ -129,6 +135,23 @@ function TipoIngresoDialog({ trigger, titulo, itemInicial = null, onGuardar, sav
               </button>
             </div>
 
+            {/* Porcentaje - solo visible cuando depende del salario */}
+            {form.dependeDeSalario && (
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-grey-600">Porcentaje (%)</label>
+                <input
+                  type="number"
+                  value={form.porcentaje ?? ''}
+                  onChange={(e) => set('porcentaje', e.target.value ? parseFloat(e.target.value) : null)}
+                  placeholder="Ej: 10"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-grey-200 bg-white text-grey-700 placeholder:text-grey-300 focus:outline-none focus:border-primary-400 transition-colors"
+                />
+              </div>
+            )}
+
             {formError && <p className="text-xs text-grey-600 font-medium">{formError}</p>}
           </div>
 
@@ -157,7 +180,7 @@ function TipoIngresoDialog({ trigger, titulo, itemInicial = null, onGuardar, sav
 // ─────────────────────────────────────────────
 // Sub: Dialog Nuevo / Editar — DEDUCCIONES
 // ─────────────────────────────────────────────
-const FORM_DEDUCCION_VACIO = { nombre: '', dependeDeSalario: false }
+const FORM_DEDUCCION_VACIO = { nombre: '', dependeDeSalario: false, porcentaje: null }
 
 function TipoDeduccionDialog({ trigger, titulo, itemInicial = null, onGuardar, saving }) {
   const [open, setOpen]           = useState(false)
@@ -169,7 +192,11 @@ function TipoDeduccionDialog({ trigger, titulo, itemInicial = null, onGuardar, s
     if (val) {
       setForm(
         itemInicial
-          ? { nombre: itemInicial.nombre ?? '', dependeDeSalario: itemInicial.dependeDeSalario ?? false }
+          ? { 
+              nombre: itemInicial.nombre ?? '', 
+              dependeDeSalario: itemInicial.dependeDeSalario ?? false,
+              porcentaje: itemInicial.porcentaje ?? null
+            }
           : FORM_DEDUCCION_VACIO
       )
       setFormError(null)
@@ -187,6 +214,8 @@ function TipoDeduccionDialog({ trigger, titulo, itemInicial = null, onGuardar, s
       nombre: form.nombre.trim(),
       dependeDeSalario: form.dependeDeSalario,
       estado: itemInicial?.estado ?? 'Activo',
+      // Solo enviar porcentaje si depende del salario
+      ...(form.dependeDeSalario ? { porcentaje: form.porcentaje } : { porcentaje: null }),
     }
     try {
       setFormError(null)
@@ -250,6 +279,23 @@ function TipoDeduccionDialog({ trigger, titulo, itemInicial = null, onGuardar, s
                 />
               </button>
             </div>
+
+            {/* Porcentaje - solo visible cuando depende del salario */}
+            {form.dependeDeSalario && (
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-grey-600">Porcentaje (%)</label>
+                <input
+                  type="number"
+                  value={form.porcentaje ?? ''}
+                  onChange={(e) => set('porcentaje', e.target.value ? parseFloat(e.target.value) : null)}
+                  placeholder="Ej: 3"
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-grey-200 bg-white text-grey-700 placeholder:text-grey-300 focus:outline-none focus:border-primary-400 transition-colors"
+                />
+              </div>
+            )}
 
             {formError && <p className="text-xs text-grey-600 font-medium">{formError}</p>}
           </div>

@@ -50,6 +50,7 @@
  * @property {string} nombre
  * @property {boolean} dependeDeSalario
  * @property {string} estado   — valor libre, ej: "Activo" / "Inactivo"
+ * @property {number | null} porcentaje   — presente cuando dependeDeSalario es true
  */
 
 /**
@@ -58,6 +59,7 @@
  * @property {string} nombre
  * @property {boolean} dependeDeSalario
  * @property {string} estado
+ * @property {number | null} porcentaje   — enviar solo si dependeDeSalario es true
  */
 
 /**
@@ -66,8 +68,6 @@
  */
 
 // ─── Tipo de Deducción ────────────────────────────────────────────────────────
-// El backend aún NO tiene implementado el módulo de deducciones.
-// Estos tipos se definen para uso futuro.
 
 /**
  * @typedef {Object} TipoDeduccion
@@ -75,10 +75,19 @@
  * @property {string} nombre
  * @property {boolean} dependeDeSalario
  * @property {string} estado
+ * @property {number | null} porcentaje   — presente cuando dependeDeSalario es true
  */
 
 /**
- * @typedef {Omit<TipoDeduccion, 'id'>} TipoDeduccionPayload
+ * @typedef {Object} TipoDeduccionPayload
+ * @property {string} nombre
+ * @property {boolean} dependeDeSalario
+ * @property {string} estado
+ * @property {number | null} porcentaje   — enviar solo si dependeDeSalario es true
+ */
+
+/**
+ * @typedef {TipoDeduccionPayload & { id: number }} TipoDeduccionUpdatePayload
  */
 
 export {}
