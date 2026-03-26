@@ -7,6 +7,7 @@ import {
   MixerHorizontalIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  ArrowTopRightIcon,
 } from '@radix-ui/react-icons'
 
 /** @type {{ label: string, path: string, icon: import('react').ReactNode }[]} */
@@ -25,6 +26,11 @@ const NAV_ITEMS = [
     label: 'Ing. y Ded.',
     path: '/tipos-ingresos',
     icon: <MixerHorizontalIcon width={20} height={20} />,
+  },
+  {
+    label: 'Transacciones',
+    path: '/transacciones',
+    icon: <ArrowTopRightIcon width={20} height={20} />,
   },
 ]
 
