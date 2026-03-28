@@ -36,7 +36,8 @@ function normalizarTransaccion(t) {
     monto: t.monto,
     dependeDeSalario: dependeDeSalario,
     estado: estado,
-    // Guardar referencia al tipo para uso interno
+    // Guardar referencia completa para edición
+    empleado: t.empleado,
     tipoDeIngreso: t.tipoDeIngreso,
     tipoDeDeduccion: t.tipoDeDeduccion,
   }
@@ -183,6 +184,39 @@ export function useTransacciones() {
     }
   }
 
+  // ── CRUD: Actualizar ──
+  async function actualizar(data) {
+    setSaving(true)
+    setSaveError(null)
+    try {
+      const actualizada = await transaccionesService.update(data)
+      await cargarTransacciones()
+      return actualizada
+    } catch (e) {
+      const msg = e.response?.data?.message ?? 'Error al actualizar la transacción'
+      setSaveError(msg)
+      throw new Error(msg)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // ── CRUD: Eliminar ──
+  async function eliminar(id) {
+    setSaving(true)
+    setSaveError(null)
+    try {
+      await transaccionesService.delete(id)
+      await cargarTransacciones()
+    } catch (e) {
+      const msg = e.response?.data?.message ?? 'Error al eliminar la transacción'
+      setSaveError(msg)
+      throw new Error(msg)
+    } finally {
+      setSaving(false)
+    }
+  }
+
   return {
     transacciones,
     transaccionesFiltradas: filtradas,
@@ -205,5 +239,7 @@ export function useTransacciones() {
     tiposIngresos,
     tiposDeducciones,
     crear,
+    actualizar,
+    eliminar,
   }
 }

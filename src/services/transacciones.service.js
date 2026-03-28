@@ -51,14 +51,14 @@ export const transaccionesService = {
   getAll: () => api.get(ENDPOINT).then((r) => r.data),
 
   /** @param {number} id @returns {Promise<Transaccion>} */
-  getById: (id) => api.get(`${ENDPOINT}/${id}`).then((r) => r.data),
+  getById: (id) => api.get(`${ENDPOINT}/id/${id}`).then((r) => r.data),
 
   /** @param {TransaccionPayload} data @returns {Promise<Transaccion>} */
   create: (data) => api.post(ENDPOINT, data).then((r) => r.data),
 
   /** @param {TransaccionPayload & { id: number }} data @returns {Promise<Transaccion>} */
-  update: (data) => api.put(`${ENDPOINT}`, data).then((r) => r.data),
+  update: (data) => api.put(`${ENDPOINT}/actualizar`, data).then((r) => r.data),
 
-  /** @param {number} id @returns {Promise<void>} */
-  delete: (id) => api.delete(`${ENDPOINT}/${id}`).then((r) => r.data),
+  /** @param {number} id @returns {Promise<string>} - mensaje de confirmación */
+  delete: (id) => api.put(`${ENDPOINT}/eliminar/${id}`).then((r) => r.data),
 }
