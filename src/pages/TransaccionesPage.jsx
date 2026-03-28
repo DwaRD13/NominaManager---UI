@@ -25,7 +25,9 @@ function formatMonto(valor) {
 /** Formatea fecha: "25 Feb" */
 function formatFecha(fechaStr) {
   if (!fechaStr) return '—'
-  const fecha = new Date(fechaStr)
+  // Splitear YYYY-MM-DD y crear fecha local para evitar problemas de timezone
+  const [year, month, day] = fechaStr.split('-').map(Number)
+  const fecha = new Date(year, month - 1, day)
   const mes = fecha.toLocaleDateString('es-ES', { month: 'short' })
   const dia = fecha.getDate()
   return `${dia} ${mes.charAt(0).toUpperCase() + mes.slice(1)}`
