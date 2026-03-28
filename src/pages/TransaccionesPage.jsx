@@ -35,6 +35,7 @@ const FORM_VACIO = {
   categoria: 'INGRESO', // 'INGRESO' o 'DEDUCCIÓN'
   tipoId: '',
   monto: '',
+  fecha: new Date().toISOString().split('T')[0], // YYYY-MM-DD
 }
 
 // ── Sub-componente: Dialog Nueva Transacción ────────────────────────────────
@@ -57,6 +58,11 @@ function TransaccionDialog({ trigger, onGuardar, saving, empleados, tiposIngreso
       // Reset tipoId when categoria changes
       if (campo === 'categoria') {
         newForm.tipoId = ''
+        newForm.monto = ''
+      }
+      // Reset monto when tipo changes (se recalcula si depende del salario)
+      if (campo === 'tipoId') {
+        newForm.monto = ''
       }
       return newForm
     })
@@ -71,21 +77,33 @@ function TransaccionDialog({ trigger, onGuardar, saving, empleados, tiposIngreso
       setFormError('Debes seleccionar un tipo de transacción.')
       return
     }
-    if (!form.monto || parseFloat(form.monto) <= 0) {
-      setFormError('El monto debe ser mayor a 0.')
+    if (!form.fecha) {
+      setFormError('Debes seleccionar una fecha.')
       return
     }
 
-    // Find the tipo selected to get its nombre
+    // Find the tipo selected to get its nombre y si depende del salario
     const tipos = form.categoria === 'INGRESO' ? tiposIngresos : tiposDeducciones
-    const tipoSeleccionado = tipos.find(t => t.id.toString() === form.tipoId.toString())
+    const tipoSeleccionado = tipos.find(t => t.id?.toString() === form.tipoId?.toString())
 
+    // Validar monto solo si NO depende del salario
+    if (!tipoSeleccionado?.dependeDeSalario) {
+      if (!form.monto || parseFloat(form.monto) <= 0) {
+        setFormError('El monto debe ser mayor a 0.')
+        return
+      }
+    }
+
+    // Construir payload según lo que espera el backend
     const payload = {
-      idEmpleado: parseInt(form.idEmpleado),
-      tipo: tipoSeleccionado?.nombre || '',
-      monto: parseFloat(form.monto),
-      estado: form.categoria, // 'INGRESO' o 'DEDUCCIÓN'
-      fecha: new Date().toISOString(),
+      empleadoId: parseInt(form.idEmpleado),
+      fecha: form.fecha,
+      monto: tipoSeleccionado?.dependeDeSalario ? null : parseFloat(form.monto),
+      // Enviar el tipo de ID correspondiente según la categoría
+      ...(form.categoria === 'INGRESO' 
+        ? { tipoDeIngresoId: parseInt(form.tipoId) }
+        : { tipoDeDeduccionId: parseInt(form.tipoId) }
+      ),
     }
 
     try {
@@ -251,22 +269,46 @@ function TransaccionDialog({ trigger, onGuardar, saving, empleados, tiposIngreso
               </Select.Root>
             </div>
 
-            {/* Monto */}
+            {/* Fecha */}
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-semibold text-grey-600">Monto *</label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-grey-400 text-sm">$</span>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={form.monto}
-                  onChange={(e) => set('monto', e.target.value)}
-                  placeholder="0.00"
-                  className="w-full pl-7 pr-3 py-2 text-sm rounded-lg border border-grey-200 bg-white text-grey-700 placeholder:text-grey-300 focus:outline-none focus:border-primary-400 transition-colors"
-                />
-              </div>
+              <label className="text-xs font-semibold text-grey-600">Fecha *</label>
+              <input
+                type="date"
+                value={form.fecha}
+                onChange={(e) => set('fecha', e.target.value)}
+                className="w-full px-3 py-2 text-sm rounded-lg border border-grey-200 bg-white text-grey-700 focus:outline-none focus:border-primary-400 transition-colors cursor-pointer"
+              />
             </div>
+
+            {/* Monto - solo se muestra si el tipo NO depende del salario */}
+            {(() => {
+              const tipoSeleccionado = tiposActuales.find(t => t.id?.toString() === form.tipoId?.toString())
+              const dependeDelSalario = tipoSeleccionado?.dependeDeSalario === true
+              
+              return !dependeDelSalario ? (
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-grey-600">Monto *</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-grey-400 text-sm">$</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={form.monto}
+                      onChange={(e) => set('monto', e.target.value)}
+                      placeholder="0.00"
+                      className="w-full pl-7 pr-3 py-2 text-sm rounded-lg border border-grey-200 bg-white text-grey-700 placeholder:text-grey-300 focus:outline-none focus:border-primary-400 transition-colors"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-grey-100 border border-grey-200">
+                  <span className="text-xs font-medium text-grey-400">
+                    Este tipo se calcula automáticamente según el salario del empleado
+                  </span>
+                </div>
+              )
+            })()}
 
             {/* Error del formulario */}
             {formError && (
@@ -374,9 +416,13 @@ function TransaccionesPage() {
   // ── Wrapper con toast ──
   async function handleCrear(payload) {
     await crear(payload)
+    // Si monto es null, es porque depende del salario
+    const montoMsg = payload.monto == null 
+      ? 'calculado según salario' 
+      : formatMonto(payload.monto)
     toast({ 
       title: 'Transacción creada', 
-      description: `Se registró ${payload.estado === 'INGRESO' ? 'un ingreso' : 'una deducción'} de ${formatMonto(payload.monto)}`, 
+      description: `Se registró ${payload.estado === 'INGRESO' ? 'un ingreso' : 'una deducción'} de ${montoMsg}`, 
       variant: 'success' 
     })
   }

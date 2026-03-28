@@ -7,6 +7,42 @@ import { tiposDeduccionesService } from '../services/tiposDeducciones.service.js
 const PAGE_SIZE = 8
 
 /**
+ * Normaliza la respuesta del backend al formato que espera la UI
+ * @param {Object} t - Transacción cruda del backend
+ * @returns {Object} Transacción normalizada
+ */
+function normalizarTransaccion(t) {
+  // Determinar el tipo: si tiene tipoDeIngreso es ingreso, si tiene tipoDeDeduccion es deducción
+  const tieneIngreso = t.tipoDeIngreso != null
+  const tieneDeduccion = t.tipoDeDeduccion != null
+  
+  // El estado se determina por cuál tipo está presente
+  const estado = tieneIngreso ? 'INGRESO' : 'DEDUCCIÓN'
+  
+  // El tipo desalario depende de qué tipo esté presente
+  const dependeDeSalario = tieneIngreso 
+    ? t.tipoDeIngreso?.dependeDeSalario 
+    : tieneDeduccion 
+      ? t.tipoDeDeduccion?.dependeDeSalario 
+      : false
+
+  return {
+    id: t.id,
+    fecha: t.fecha,
+    tipo: t.tipoTransaccion,
+    nombreEmpleado: t.empleado?.nombre,
+    cedulaEmpleado: t.empleado?.cedula,
+    departamentoEmpleado: t.empleado?.departamento,
+    monto: t.monto,
+    dependeDeSalario: dependeDeSalario,
+    estado: estado,
+    // Guardar referencia al tipo para uso interno
+    tipoDeIngreso: t.tipoDeIngreso,
+    tipoDeDeduccion: t.tipoDeDeduccion,
+  }
+}
+
+/**
  * Hook que centraliza toda la lógica del módulo de transacciones:
  * carga de datos, búsqueda, filtrado por tipo (ingreso/deducción), paginación y CRUD.
  *
@@ -69,7 +105,9 @@ export function useTransacciones() {
     setError(null)
     try {
       const data = await transaccionesService.getAll()
-      setTodos(data)
+      // Normalizar los datos del backend al formato que espera la UI
+      const normalizadas = data.map(normalizarTransaccion)
+      setTodos(normalizadas)
     } catch (e) {
       setError(e.response?.data?.message ?? 'Error al cargar las transacciones')
     } finally {
