@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Dialog, Select, Separator } from 'radix-ui'
+import { Dialog, Select, Separator, AlertDialog } from 'radix-ui'
 import {
   MagnifyingGlassIcon,
   PlusIcon,
@@ -8,6 +8,8 @@ import {
   ChevronDownIcon,
   CheckIcon,
   UpdateIcon,
+  Pencil1Icon,
+  TrashIcon,
 } from '@radix-ui/react-icons'
 import { useTransacciones } from '../hooks/useTransacciones.js'
 import { useToast } from '../hooks/useToast.jsx'
@@ -23,7 +25,9 @@ function formatMonto(valor) {
 /** Formatea fecha: "25 Feb" */
 function formatFecha(fechaStr) {
   if (!fechaStr) return '—'
-  const fecha = new Date(fechaStr)
+  // Splitear YYYY-MM-DD y crear fecha local para evitar problemas de timezone
+  const [year, month, day] = fechaStr.split('-').map(Number)
+  const fecha = new Date(year, month - 1, day)
   const mes = fecha.toLocaleDateString('es-ES', { month: 'short' })
   const dia = fecha.getDate()
   return `${dia} ${mes.charAt(0).toUpperCase() + mes.slice(1)}`
@@ -35,20 +39,43 @@ const FORM_VACIO = {
   categoria: 'INGRESO', // 'INGRESO' o 'DEDUCCIÓN'
   tipoId: '',
   monto: '',
+  fecha: new Date().toISOString().split('T')[0], // YYYY-MM-DD
 }
 
-// ── Sub-componente: Dialog Nueva Transacción ────────────────────────────────
-function TransaccionDialog({ trigger, onGuardar, saving, empleados, tiposIngresos, tiposDeducciones }) {
+// ── Sub-componente: Dialog de Transacción (crear/editar) ───────────────────
+function TransaccionDialog({ trigger, onGuardar, saving, empleados, tiposIngresos, tiposDeducciones, transaccion }) {
+  const isEdit = !!transaccion
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState(FORM_VACIO)
   const [formError, setFormError] = useState(null)
 
+  // Abrir automáticamente si es edición
+  useEffect(() => {
+    if (transaccion) {
+      const tipoId = transaccion.estado === 'INGRESO' 
+        ? transaccion.tipoDeIngreso?.id 
+        : transaccion.tipoDeDeduccion?.id
+      setForm({
+        idEmpleado: transaccion.empleado?.id?.toString() || '',
+        categoria: transaccion.estado,
+        tipoId: tipoId?.toString() || '',
+        monto: transaccion.monto?.toString() || '',
+        fecha: transaccion.fecha,
+      })
+      setOpen(true)
+    }
+  }, [transaccion])
+
   function handleOpen(val) {
     setOpen(val)
-    if (val) {
+    if (!val && isEdit) {
+      // Limpiar cuando se cierra en modo edición
       setForm(FORM_VACIO)
-      setFormError(null)
     }
+    if (val && !transaccion) {
+      setForm(FORM_VACIO)
+    }
+    setFormError(null)
   }
 
   function set(campo, valor) {
@@ -57,6 +84,11 @@ function TransaccionDialog({ trigger, onGuardar, saving, empleados, tiposIngreso
       // Reset tipoId when categoria changes
       if (campo === 'categoria') {
         newForm.tipoId = ''
+        newForm.monto = ''
+      }
+      // Reset monto when tipo changes (se recalcula si depende del salario)
+      if (campo === 'tipoId') {
+        newForm.monto = ''
       }
       return newForm
     })
@@ -71,21 +103,34 @@ function TransaccionDialog({ trigger, onGuardar, saving, empleados, tiposIngreso
       setFormError('Debes seleccionar un tipo de transacción.')
       return
     }
-    if (!form.monto || parseFloat(form.monto) <= 0) {
-      setFormError('El monto debe ser mayor a 0.')
+    if (!form.fecha) {
+      setFormError('Debes seleccionar una fecha.')
       return
     }
 
-    // Find the tipo selected to get its nombre
+    // Find the tipo selected to get its nombre y si depende del salario
     const tipos = form.categoria === 'INGRESO' ? tiposIngresos : tiposDeducciones
-    const tipoSeleccionado = tipos.find(t => t.id.toString() === form.tipoId.toString())
+    const tipoSeleccionado = tipos.find(t => t.id?.toString() === form.tipoId?.toString())
 
+    // Validar monto solo si NO depende del salario
+    if (!tipoSeleccionado?.dependeDeSalario) {
+      if (!form.monto || parseFloat(form.monto) <= 0) {
+        setFormError('El monto debe ser mayor a 0.')
+        return
+      }
+    }
+
+    // Construir payload según lo que espera el backend
     const payload = {
-      idEmpleado: parseInt(form.idEmpleado),
-      tipo: tipoSeleccionado?.nombre || '',
-      monto: parseFloat(form.monto),
-      estado: form.categoria, // 'INGRESO' o 'DEDUCCIÓN'
-      fecha: new Date().toISOString(),
+      ...(isEdit && { id: transaccion.id }), // Incluir ID si es edición
+      empleadoId: parseInt(form.idEmpleado),
+      fecha: form.fecha, // formato YYYY-MM-DD tal cual
+      monto: tipoSeleccionado?.dependeDeSalario ? null : parseFloat(form.monto),
+      // Enviar el tipo de ID correspondiente según la categoría
+      ...(form.categoria === 'INGRESO' 
+        ? { tipoDeIngresoId: parseInt(form.tipoId) }
+        : { tipoDeDeduccionId: parseInt(form.tipoId) }
+      ),
     }
 
     try {
@@ -111,9 +156,13 @@ function TransaccionDialog({ trigger, onGuardar, saving, empleados, tiposIngreso
         >
           {/* ── Header ── */}
           <div className="flex flex-col gap-1">
-            <Dialog.Title className="text-xl font-bold text-grey-700">Nueva Transacción</Dialog.Title>
+            <Dialog.Title className="text-xl font-bold text-grey-700">
+              {isEdit ? 'Editar Transacción' : 'Nueva Transacción'}
+            </Dialog.Title>
             <Dialog.Description className="text-sm text-grey-400">
-              Registra un nuevo ingreso o deducción para un empleado.
+              {isEdit 
+                ? 'Modifica los datos de la transacción.' 
+                : 'Registra un nuevo ingreso o deducción para un empleado.'}
             </Dialog.Description>
           </div>
 
@@ -251,22 +300,46 @@ function TransaccionDialog({ trigger, onGuardar, saving, empleados, tiposIngreso
               </Select.Root>
             </div>
 
-            {/* Monto */}
+            {/* Fecha */}
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-semibold text-grey-600">Monto *</label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-grey-400 text-sm">$</span>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={form.monto}
-                  onChange={(e) => set('monto', e.target.value)}
-                  placeholder="0.00"
-                  className="w-full pl-7 pr-3 py-2 text-sm rounded-lg border border-grey-200 bg-white text-grey-700 placeholder:text-grey-300 focus:outline-none focus:border-primary-400 transition-colors"
-                />
-              </div>
+              <label className="text-xs font-semibold text-grey-600">Fecha *</label>
+              <input
+                type="date"
+                value={form.fecha}
+                onChange={(e) => set('fecha', e.target.value)}
+                className="w-full px-3 py-2 text-sm rounded-lg border border-grey-200 bg-white text-grey-700 focus:outline-none focus:border-primary-400 transition-colors cursor-pointer"
+              />
             </div>
+
+            {/* Monto - solo se muestra si el tipo NO depende del salario */}
+            {(() => {
+              const tipoSeleccionado = tiposActuales.find(t => t.id?.toString() === form.tipoId?.toString())
+              const dependeDelSalario = tipoSeleccionado?.dependeDeSalario === true
+              
+              return !dependeDelSalario ? (
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-grey-600">Monto *</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-grey-400 text-sm">$</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={form.monto}
+                      onChange={(e) => set('monto', e.target.value)}
+                      placeholder="0.00"
+                      className="w-full pl-7 pr-3 py-2 text-sm rounded-lg border border-grey-200 bg-white text-grey-700 placeholder:text-grey-300 focus:outline-none focus:border-primary-400 transition-colors"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-grey-100 border border-grey-200">
+                  <span className="text-xs font-medium text-grey-400">
+                    Este tipo se calcula automáticamente según el salario del empleado
+                  </span>
+                </div>
+              )
+            })()}
 
             {/* Error del formulario */}
             {formError && (
@@ -369,16 +442,49 @@ function TransaccionesPage() {
     tiposIngresos,
     tiposDeducciones,
     crear,
+    actualizar,
+    eliminar,
   } = useTransacciones()
 
-  // ── Wrapper con toast ──
+  // ── Estado para edición y eliminación ──
+  const [transaccionEditando, setTransaccionEditando] = useState(null)
+  const [transaccionEliminando, setTransaccionEliminando] = useState(null)
+
+  // ── Wrapper con toast para crear ──
   async function handleCrear(payload) {
     await crear(payload)
+    const montoMsg = payload.monto == null 
+      ? 'calculado según salario' 
+      : formatMonto(payload.monto)
     toast({ 
       title: 'Transacción creada', 
-      description: `Se registró ${payload.estado === 'INGRESO' ? 'un ingreso' : 'una deducción'} de ${formatMonto(payload.monto)}`, 
+      description: `Se registró ${payload.tipoDeIngresoId ? 'un ingreso' : 'una deducción'} de ${montoMsg}`, 
       variant: 'success' 
     })
+  }
+
+  // ── Wrapper con toast para actualizar ──
+  async function handleActualizar(payload) {
+    await actualizar(payload)
+    // Determinar tipo de transacción para el mensaje
+    const esIngreso = payload.tipoDeIngresoId != null
+    toast({ 
+      title: 'Transacción actualizada', 
+      description: `Se actualizó ${esIngreso ? 'el ingreso' : 'la deducción'} correctamente.`, 
+      variant: 'success' 
+    })
+    setTransaccionEditando(null)
+  }
+
+  // ── Wrapper con toast para eliminar ──
+  async function handleEliminar() {
+    await eliminar(transaccionEliminando.id)
+    toast({ 
+      title: 'Transacción eliminada', 
+      description: `Se eliminó ${transaccionEliminando.estado === 'INGRESO' ? 'el ingreso' : 'la deducción'} de ${transaccionEliminando.nombreEmpleado}`, 
+      variant: 'success' 
+    })
+    setTransaccionEliminando(null)
   }
 
   return (
@@ -484,9 +590,9 @@ function TransaccionesPage() {
           {/* ── Cabecera de columnas ── */}
           <div
             className="grid items-center px-5 py-3 bg-grey-100 border-b border-grey-200"
-            style={{ gridTemplateColumns: '1fr 1.5fr 1.5fr 1fr 0.8fr' }}
+            style={{ gridTemplateColumns: '1fr 1.5fr 1.5fr 1fr 0.8fr 0.5fr' }}
           >
-            {['Fecha', 'Tipo', 'Empleado', 'Monto', 'Estado'].map((col) => (
+            {['Fecha', 'Tipo', 'Empleado', 'Monto', 'Estado', ''].map((col) => (
               <span key={col} className="text-xs font-semibold text-grey-400 uppercase tracking-wide">
                 {col}
               </span>
@@ -509,7 +615,7 @@ function TransaccionesPage() {
               <div key={t.id}>
                 <div
                   className="grid items-center px-5 py-3 hover:bg-grey-100 transition-colors"
-                  style={{ gridTemplateColumns: '1fr 1.5fr 1.5fr 1fr 0.8fr' }}
+                  style={{ gridTemplateColumns: '1fr 1.5fr 1.5fr 1fr 0.8fr 0.5fr' }}
                 >
                   {/* Fecha */}
                   <span className="text-sm text-grey-600">{formatFecha(t.fecha)}</span>
@@ -525,6 +631,24 @@ function TransaccionesPage() {
 
                   {/* Estado */}
                   <TipoBadge estado={t.estado} />
+
+                  {/* Acciones */}
+                  <div className="flex items-center gap-1 justify-end">
+                    <button
+                      onClick={() => setTransaccionEditando(t)}
+                      className="flex items-center justify-center w-8 h-8 rounded-lg text-grey-400 hover:bg-primary-100 hover:text-primary-500 transition-colors cursor-pointer"
+                      title="Editar"
+                    >
+                      <Pencil1Icon />
+                    </button>
+                    <button
+                      onClick={() => setTransaccionEliminando(t)}
+                      className="flex items-center justify-center w-8 h-8 rounded-lg text-grey-400 hover:bg-red-100 hover:text-red-500 transition-colors cursor-pointer"
+                      title="Eliminar"
+                    >
+                      <TrashIcon />
+                    </button>
+                  </div>
                 </div>
 
                 {idx < transacciones.length - 1 && (
@@ -579,6 +703,56 @@ function TransaccionesPage() {
             </div>
           </div>
         </div>
+
+        {/* ── Dialog de edición ── */}
+        {transaccionEditando && (
+          <TransaccionDialog
+            transaccion={transaccionEditando}
+            onGuardar={handleActualizar}
+            saving={saving}
+            empleados={empleados}
+            tiposIngresos={tiposIngresos}
+            tiposDeducciones={tiposDeducciones}
+            trigger={null}
+          />
+        )}
+
+        {/* ── AlertDialog de eliminación ── */}
+        <AlertDialog.Root open={!!transaccionEliminando} onOpenChange={(open) => !open && setTransaccionEliminando(null)}>
+          <AlertDialog.Portal>
+            <AlertDialog.Overlay className="fixed inset-0 bg-black/40 z-40" />
+            <AlertDialog.Content
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-white rounded-xl border border-grey-200 p-6 w-full max-w-md flex flex-col gap-5 focus:outline-none"
+              style={{ boxShadow: '0px 8px 32px 0px rgba(0,0,0,0.12)' }}
+            >
+              <AlertDialog.Title className="text-xl font-bold text-grey-700">
+                Eliminar Transacción
+              </AlertDialog.Title>
+              <AlertDialog.Description className="text-sm text-grey-500">
+                ¿Estás seguro de que deseas eliminar esta transacción? Esta acción no se puede deshacer.
+              </AlertDialog.Description>
+              <div className="flex items-center justify-end gap-3">
+                <AlertDialog.Cancel asChild>
+                  <button
+                    className="px-4 py-2 text-sm font-medium text-grey-500 rounded-lg border border-grey-200 hover:bg-grey-100 transition-colors cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                </AlertDialog.Cancel>
+                <AlertDialog.Action asChild>
+                  <button
+                    onClick={handleEliminar}
+                    disabled={saving}
+                    className="px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-lg hover:bg-red-600 transition-colors cursor-pointer disabled:opacity-60"
+                  >
+                    {saving && <UpdateIcon className="animate-spin mr-2" />}
+                    Eliminar
+                  </button>
+                </AlertDialog.Action>
+              </div>
+            </AlertDialog.Content>
+          </AlertDialog.Portal>
+        </AlertDialog.Root>
 
       </div>
     </div>

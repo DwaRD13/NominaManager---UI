@@ -7,6 +7,43 @@ import { tiposDeduccionesService } from '../services/tiposDeducciones.service.js
 const PAGE_SIZE = 8
 
 /**
+ * Normaliza la respuesta del backend al formato que espera la UI
+ * @param {Object} t - Transacción cruda del backend
+ * @returns {Object} Transacción normalizada
+ */
+function normalizarTransaccion(t) {
+  // Determinar el tipo: si tiene tipoDeIngreso es ingreso, si tiene tipoDeDeduccion es deducción
+  const tieneIngreso = t.tipoDeIngreso != null
+  const tieneDeduccion = t.tipoDeDeduccion != null
+  
+  // El estado se determina por cuál tipo está presente
+  const estado = tieneIngreso ? 'INGRESO' : 'DEDUCCIÓN'
+  
+  // El tipo desalario depende de qué tipo esté presente
+  const dependeDeSalario = tieneIngreso 
+    ? t.tipoDeIngreso?.dependeDeSalario 
+    : tieneDeduccion 
+      ? t.tipoDeDeduccion?.dependeDeSalario 
+      : false
+
+  return {
+    id: t.id,
+    fecha: t.fecha,
+    tipo: t.tipoTransaccion,
+    nombreEmpleado: t.empleado?.nombre,
+    cedulaEmpleado: t.empleado?.cedula,
+    departamentoEmpleado: t.empleado?.departamento,
+    monto: t.monto,
+    dependeDeSalario: dependeDeSalario,
+    estado: estado,
+    // Guardar referencia completa para edición
+    empleado: t.empleado,
+    tipoDeIngreso: t.tipoDeIngreso,
+    tipoDeDeduccion: t.tipoDeDeduccion,
+  }
+}
+
+/**
  * Hook que centraliza toda la lógica del módulo de transacciones:
  * carga de datos, búsqueda, filtrado por tipo (ingreso/deducción), paginación y CRUD.
  *
@@ -69,7 +106,9 @@ export function useTransacciones() {
     setError(null)
     try {
       const data = await transaccionesService.getAll()
-      setTodos(data)
+      // Normalizar los datos del backend al formato que espera la UI
+      const normalizadas = data.map(normalizarTransaccion)
+      setTodos(normalizadas)
     } catch (e) {
       setError(e.response?.data?.message ?? 'Error al cargar las transacciones')
     } finally {
@@ -145,6 +184,39 @@ export function useTransacciones() {
     }
   }
 
+  // ── CRUD: Actualizar ──
+  async function actualizar(data) {
+    setSaving(true)
+    setSaveError(null)
+    try {
+      const actualizada = await transaccionesService.update(data)
+      await cargarTransacciones()
+      return actualizada
+    } catch (e) {
+      const msg = e.response?.data?.message ?? 'Error al actualizar la transacción'
+      setSaveError(msg)
+      throw new Error(msg)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // ── CRUD: Eliminar ──
+  async function eliminar(id) {
+    setSaving(true)
+    setSaveError(null)
+    try {
+      await transaccionesService.delete(id)
+      await cargarTransacciones()
+    } catch (e) {
+      const msg = e.response?.data?.message ?? 'Error al eliminar la transacción'
+      setSaveError(msg)
+      throw new Error(msg)
+    } finally {
+      setSaving(false)
+    }
+  }
+
   return {
     transacciones,
     transaccionesFiltradas: filtradas,
@@ -167,5 +239,7 @@ export function useTransacciones() {
     tiposIngresos,
     tiposDeducciones,
     crear,
+    actualizar,
+    eliminar,
   }
 }
