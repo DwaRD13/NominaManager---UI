@@ -1,10 +1,11 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import AppLayout from './components/layout/AppLayout.jsx'
-import DashboardPage from './pages/DashboardPage.jsx'
-import EmpleadosPage from './pages/EmpleadosPage.jsx'
-import TiposIngresosPage from './pages/TiposIngresosPage.jsx'
-import TiposDeduccionesPage from './pages/TiposDeduccionesPage.jsx'
-import TransaccionesPage from './pages/TransaccionesPage.jsx'
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import AppLayout from "./components/layout/AppLayout.jsx";
+import DashboardPage from "./pages/DashboardPage.jsx";
+import EmpleadosPage from "./pages/EmpleadosPage.jsx";
+import TiposIngresosPage from "./pages/TiposIngresosPage.jsx";
+import TiposDeduccionesPage from "./pages/TiposDeduccionesPage.jsx";
+import TransaccionesPage from "./pages/TransaccionesPage.jsx";
+import ConsultasPage from "./pages/ConsultasPage.jsx";
 
 function App() {
   return (
@@ -16,10 +17,11 @@ function App() {
           <Route path="tipos-ingresos" element={<TiposIngresosPage />} />
           <Route path="tipos-deducciones" element={<TiposDeduccionesPage />} />
           <Route path="transacciones" element={<TransaccionesPage />} />
+          <Route path="consultas" element={<ConsultasPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
-  )
+  );
 }
 
-export default App
+export default App;
