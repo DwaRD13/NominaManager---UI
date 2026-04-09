@@ -117,9 +117,6 @@ function DashboardPage() {
               <h2 className="text-lg font-bold text-grey-700">Total Nómina Mensual</h2>
               <Tooltip.Provider delayDuration={300}>
                 <Tooltip.Root>
-                  <Tooltip.Trigger asChild>
-                    <span className="text-xs text-grey-400 cursor-default">Mes Actual</span>
-                  </Tooltip.Trigger>
                   <Tooltip.Portal>
                     <Tooltip.Content
                       className="bg-grey-700 text-white text-xs px-2 py-1 rounded"
@@ -159,14 +156,6 @@ function DashboardPage() {
                   -${loading ? '...' : formatCurrency(data.totalDeduccionesMes)}
                 </span>
               </div>
-            </div>
-
-            {/* Footer */}
-            <div className="flex items-center gap-2 mt-auto">
-              <PersonIcon className="text-primary-300" />
-              <span className="text-sm text-grey-400">
-                {loading ? '...' : `${data.empleadosActivos} Empleados Activos`}
-              </span>
             </div>
           </div>
 

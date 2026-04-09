@@ -49,23 +49,16 @@ export function useDashboard() {
 
         const transaccionesActivas = transaccionesData.filter((t) => String(t.estado) === '1')
 
-        const ahora = new Date()
-        const mismoMes = (fecha) => {
-          if (!fecha) return false
-          const d = new Date(fecha)
-          return d.getFullYear() === ahora.getFullYear() && d.getMonth() === ahora.getMonth()
-        }
-
-        const transaccionesMes = transaccionesActivas.filter((t) => mismoMes(t.fecha))
-
         const esIngreso = (t) =>
-          t.tipoTransaccion?.toUpperCase() === 'INGRESO' || t.tipoDeIngreso != null
+          String(t.estado).toUpperCase() === 'INGRESO' ||
+          t.tipoTransaccion?.toUpperCase() === 'INGRESO' ||
+          t.tipoDeIngreso != null
 
-        const totalIngresosMes = transaccionesMes.reduce((sum, t) => {
+        const totalIngresosMes = transaccionesActivas.reduce((sum, t) => {
           return esIngreso(t) ? sum + Number(t.monto || 0) : sum
         }, 0)
 
-        const totalDeduccionesMes = transaccionesMes.reduce((sum, t) => {
+        const totalDeduccionesMes = transaccionesActivas.reduce((sum, t) => {
           return esIngreso(t) ? sum : sum + Number(t.monto || 0)
         }, 0)
 
