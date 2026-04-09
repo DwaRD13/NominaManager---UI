@@ -79,6 +79,7 @@ function CrearAsientoDialog({ onCrear, saving }) {
   const [open, setOpen] = useState(false);
   const [formError, setFormError] = useState(null);
   const [form, setForm] = useState({
+    descripcion: "",
     fechaInicio: "",
     fechaFin: "",
     moneda: "DOP",
@@ -91,7 +92,7 @@ function CrearAsientoDialog({ onCrear, saving }) {
       return;
     }
 
-    setForm({ fechaInicio: "", fechaFin: "", moneda: "DOP" });
+    setForm({ descripcion: "", fechaInicio: "", fechaFin: "", moneda: "DOP" });
     setFormError(null);
   }
 
@@ -147,6 +148,20 @@ function CrearAsientoDialog({ onCrear, saving }) {
 
           {/* ── Formulario ── */}
           <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-semibold text-grey-600">Descripción</label>
+              <input
+                type="text"
+                maxLength={50}
+                value={form.descripcion}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, descripcion: e.target.value }))
+                }
+                placeholder="Ej: Asiento de cierre quincenal"
+                className="w-full px-3 py-2 text-sm rounded-lg border border-grey-200 bg-white text-grey-700 placeholder:text-grey-300 focus:outline-none focus:border-primary-400 transition-colors"
+              />
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-semibold text-grey-600">
@@ -288,7 +303,7 @@ function AsientosContablesPage() {
     return Number((dias * 8250.75).toFixed(2));
   }
 
-  async function handleCrearAsiento({ fechaInicio, fechaFin, moneda }) {
+  async function handleCrearAsiento({ descripcion, fechaInicio, fechaFin, moneda }) {
     setSaving(true);
     try {
       const nextId = asientos.length > 0 ? Math.max(...asientos.map((a) => a.id)) + 1 : 1;
@@ -296,7 +311,9 @@ function AsientosContablesPage() {
 
       const nuevoAsiento = {
         id: nextId,
-        descripcion: `Asiento generado del ${formatFecha(fechaInicio)} al ${formatFecha(fechaFin)}`,
+        descripcion:
+          descripcion?.trim() ||
+          `Asiento generado del ${formatFecha(fechaInicio)} al ${formatFecha(fechaFin)}`,
         fechaAsiento: fechaFin,
         montoTotal,
         estado: 1,
