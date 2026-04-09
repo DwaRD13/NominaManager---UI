@@ -14,7 +14,6 @@ import {
 } from "@radix-ui/react-icons";
 import api from "../services/api.js";
 import { useEmpleados } from "../hooks/useEmpleados.js";
-import { exportarConsultasPDF } from "../lib/exportar.js";
 
 export default function ConsultasPage() {
   const { empleadosFiltrados: empleados, error: errorEmpleados } =
@@ -113,17 +112,33 @@ export default function ConsultasPage() {
     }
   };
 
-  const handleDescargarReporte = () => {
+  const handleExportarPDF = async () => {
     if (resultados.length === 0) {
       window.alert("No hay datos para exportar.");
       return;
     }
 
     try {
+      const { exportarConsultasPDF } = await import("../lib/exportar.js");
       exportarConsultasPDF(resultados, empleados, filtros);
     } catch (e) {
       console.error(e);
       window.alert("Ocurrió un error exportando el PDF.");
+    }
+  };
+
+  const handleExportarXLSX = async () => {
+    if (resultados.length === 0) {
+      window.alert("No hay datos para exportar.");
+      return;
+    }
+
+    try {
+      const { exportarConsultasXLSX } = await import("../lib/exportar.js");
+      exportarConsultasXLSX(resultados, empleados, filtros);
+    } catch (e) {
+      console.error(e);
+      window.alert("Ocurrió un error exportando el XLSX.");
     }
   };
 
@@ -469,33 +484,25 @@ export default function ConsultasPage() {
           </div>
         </div>
 
-        {/* ── BOTÓN DESCARGAR FUNCIONAL ── */}
-        <div className="flex w-full justify-center pt-4 pb-12">
-          <Tooltip.Provider delayDuration={250}>
-            <Tooltip.Root>
-              <Tooltip.Trigger asChild>
-                <button
-                  onClick={handleDescargarReporte}
-                  disabled={resultados.length === 0}
-                  className="flex items-center gap-4 rounded-2xl bg-grey-500 px-12 py-4 text-base font-semibold text-white transition-colors hover:bg-grey-600 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <DownloadIcon className="h-6 w-6" />
-                  Descargar Reporte
-                </button>
-              </Tooltip.Trigger>
-              <Tooltip.Portal>
-                <Tooltip.Content
-                  sideOffset={6}
-                  className="rounded bg-grey-700 px-2 py-1 text-xs text-white"
-                >
-                  {resultados.length === 0
-                    ? "Primero generá una consulta para exportar"
-                    : "Exportar resultado actual en PDF"}
-                  <Tooltip.Arrow className="fill-grey-700" />
-                </Tooltip.Content>
-              </Tooltip.Portal>
-            </Tooltip.Root>
-          </Tooltip.Provider>
+        {/* ── Exportar ── */}
+        <div className="flex items-center gap-3 pt-2 pb-12">
+          <button
+            onClick={handleExportarPDF}
+            disabled={cargando || resultados.length === 0}
+            className="flex items-center gap-2 rounded-xl border border-grey-200 px-4 py-2 text-sm font-semibold text-grey-600 transition-colors hover:bg-grey-100 cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <FileTextIcon className="text-grey-500" />
+            Exportar en PDF
+          </button>
+
+          <button
+            onClick={handleExportarXLSX}
+            disabled={cargando || resultados.length === 0}
+            className="flex items-center gap-2 rounded-xl border border-primary-300 px-4 py-2 text-sm font-semibold text-primary-500 transition-colors hover:bg-primary-100 cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <DownloadIcon className="text-primary-400" />
+            Exportar en XLS
+          </button>
         </div>
       </div>
     </div>

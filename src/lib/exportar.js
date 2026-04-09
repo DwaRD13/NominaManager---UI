@@ -481,6 +481,96 @@ export function exportarConsultasPDF(resultados, empleados, filtros) {
 }
 
 /**
+ * Exporta el reporte de Consultas Especiales a un archivo XLSX.
+ * @param {Array} resultados
+ * @param {Array} empleados
+ * @param {Object} filtros
+ * @param {{ nombreArchivo?: string }} opciones
+ */
+export function exportarConsultasXLSX(
+  resultados,
+  empleados,
+  filtros,
+  { nombreArchivo = "consultas_especiales" } = {},
+) {
+  const fechaGeneracion = new Date().toLocaleDateString("es-DO", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+
+  const getEmpleadoNombre = (id) =>
+    empleados.find((e) => e.id === Number(id))?.nombre || `ID: ${id}`;
+
+  const empFiltro = filtros.empleadoId
+    ? empleados.find((e) => e.id === Number(filtros.empleadoId))?.nombre
+    : "Todos los colaboradores";
+
+  const tipoFiltro =
+    filtros.tipoTransaccion === "TODOS"
+      ? "Ingresos y Deducciones"
+      : filtros.tipoTransaccion === "INGRESO"
+        ? "Solo Ingresos"
+        : "Solo Deducciones";
+
+  const fechasRango =
+    filtros.fechaInicio && filtros.fechaFin
+      ? `${formatFecha(filtros.fechaInicio)} al ${formatFecha(filtros.fechaFin)}`
+      : "Histórico Completo";
+
+  let totalIngresos = 0;
+  let totalDeducciones = 0;
+
+  const filas = resultados.map((r) => {
+    const esIngreso = r.tipoTransaccion === "INGRESO";
+    if (esIngreso) totalIngresos += r.monto || 0;
+    else totalDeducciones += r.monto || 0;
+
+    return {
+      Fecha: formatFecha(r.fecha),
+      Colaborador: getEmpleadoNombre(r.empleadoId),
+      Tipo: esIngreso ? "INGRESO" : "DEDUCCIÓN",
+      Concepto: r.tipoNombre ?? "—",
+      Monto: esIngreso ? r.monto || 0 : -(r.monto || 0),
+      Estado: "Activo",
+    };
+  });
+
+  const ws = utils.json_to_sheet(filas);
+  ws["!cols"] = [
+    { wch: 14 }, // Fecha
+    { wch: 30 }, // Colaborador
+    { wch: 14 }, // Tipo
+    { wch: 34 }, // Concepto
+    { wch: 16 }, // Monto
+    { wch: 12 }, // Estado
+  ];
+
+  const resumen = [
+    { Campo: "Filtro colaborador", Valor: empFiltro ?? "—" },
+    { Campo: "Filtro tipo", Valor: tipoFiltro },
+    { Campo: "Rango de fechas", Valor: fechasRango },
+    { Campo: "Total registros", Valor: resultados.length },
+    { Campo: "Total ingresos", Valor: totalIngresos },
+    { Campo: "Total deducciones", Valor: totalDeducciones },
+    { Campo: "Balance neto", Valor: totalIngresos - totalDeducciones },
+    { Campo: "Generado el", Valor: fechaGeneracion },
+  ];
+
+  const wsResumen = utils.json_to_sheet(resumen);
+  wsResumen["!cols"] = [
+    { wch: 24 }, // Campo
+    { wch: 48 }, // Valor
+  ];
+
+  const wb = utils.book_new();
+  utils.book_append_sheet(wb, ws, "Consultas");
+  utils.book_append_sheet(wb, wsResumen, "Resumen");
+
+  writeFile(wb, `${nombreArchivo}_${fechaGeneracion.replace(/\//g, "-")}.xlsx`);
+}
+
+/**
  * Exporta la lista de Tipos de Ingresos y Deducciones a un archivo XLSX.
  * @param {Array} ingresos
  * @param {Array} deducciones
