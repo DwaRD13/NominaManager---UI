@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Select, ToggleGroup, Separator, Tooltip } from "radix-ui";
 import {
   MagnifyingGlassIcon,
   CalendarIcon,
@@ -9,6 +10,7 @@ import {
   UpdateIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  ChevronDownIcon,
 } from "@radix-ui/react-icons";
 import api from "../services/api.js";
 import { useEmpleados } from "../hooks/useEmpleados.js";
@@ -137,188 +139,57 @@ export default function ConsultasPage() {
     empleados.find((e) => e.id === Number(id))?.nombre || `Empleado ID: ${id}`;
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        minHeight: "100vh",
-        fontFamily: "inherit",
-        backgroundColor: "#f9fafb",
-      }}
-    >
+    <div className="flex flex-col min-h-screen">
       {/* ── Body ── */}
-      <div
-        style={{
-          maxWidth: "80rem",
-          margin: "0 auto",
-          width: "100%",
-          padding: "1rem 2rem 2rem 2rem",
-          display: "flex",
-          flexDirection: "column",
-          gap: "2rem",
-          boxSizing: "border-box",
-        }}
-      >
-        {/* Título */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-end",
-            paddingTop: "1rem",
-          }}
-        >
-          <div
-            style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}
-          >
-            <h1
-              style={{
-                margin: 0,
-                fontSize: "2.25rem",
-                fontWeight: 900,
-                color: "#111827",
-                letterSpacing: "-0.05em",
-              }}
-            >
+      <div className="flex flex-col gap-8 px-8 pt-4 pb-8">
+        {/* ── Título + breadcrumbs ── */}
+        <div className="flex items-end justify-between pt-10">
+          <div className="flex flex-col gap-1">
+            <h1 className="m-0 text-3xl font-bold text-grey-700">
               Consultas Especiales
             </h1>
-            <p
-              style={{
-                margin: 0,
-                color: "#6B7280",
-                fontSize: "0.75rem",
-                fontWeight: 800,
-                textTransform: "uppercase",
-                letterSpacing: "0.1em",
-              }}
-            >
-              Reportes por criterios cruzados
-            </p>
+            <nav className="flex items-center gap-1 text-sm">
+              <span className="text-grey-400">Dashboard</span>
+              <span className="text-grey-400">/</span>
+              <span className="font-medium text-grey-700">Consultas Especiales</span>
+            </nav>
           </div>
+
           {errorEmpleados && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-                backgroundColor: "#FEE2E2",
-                color: "#991B1B",
-                padding: "0.5rem 1rem",
-                borderRadius: "0.75rem",
-                border: "1px solid #FCA5A5",
-                fontSize: "0.875rem",
-                fontWeight: 700,
-              }}
-            >
-              <UpdateIcon width={18} height={18} /> Error al cargar empleados
+            <div className="flex items-center gap-2 rounded-xl border border-grey-200 bg-grey-100 px-4 py-2 text-sm font-semibold text-grey-600">
+              <UpdateIcon className="w-4 h-4" /> Error al cargar empleados
             </div>
           )}
         </div>
 
-        {/* Grid Principal */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "minmax(0, 5fr) minmax(0, 7fr)",
-            gap: "2rem",
-            alignItems: "start",
-          }}
-        >
-          {/* PANEL DE FILTROS (IZQUIERDA) */}
-          <div
-            style={{
-              backgroundColor: "#ffffff",
-              borderRadius: "1.5rem",
-              padding: "2rem",
-              boxShadow:
-                "0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)",
-              display: "flex",
-              flexDirection: "column",
-              gap: "2rem",
-              border: "none",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.75rem",
-                color: "#111827",
-              }}
-            >
-              <div
-                style={{
-                  padding: "0.75rem",
-                  backgroundColor: "#EEF2FF",
-                  borderRadius: "1rem",
-                  color: "#4F46E5",
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                }}
-              >
-                <MixerHorizontalIcon width={24} height={24} strokeWidth={3} />
+        {/* ── Grid principal ── */}
+        <div className="grid grid-cols-1 items-start gap-8 xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+          {/* ── PANEL DE FILTROS (IZQUIERDA) ── */}
+          <div className="flex flex-col gap-8 rounded-3xl border border-grey-200 bg-white p-8 shadow-[0_20px_25px_-5px_rgba(0,0,0,0.1),0_10px_10px_-5px_rgba(0,0,0,0.04)]">
+            <div className="flex items-center gap-3 text-grey-700">
+              <div className="flex items-center justify-center rounded-2xl bg-primary-100 p-3 text-primary-500">
+                <MixerHorizontalIcon className="h-6 w-6" />
               </div>
-              <h2 style={{ margin: 0, fontSize: "1.5rem", fontWeight: 900 }}>
-                Filtros
-              </h2>
+              <h2 className="m-0 text-2xl font-bold">Filtros</h2>
             </div>
 
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "1.5rem",
-              }}
-            >
+            <Separator.Root className="h-px bg-grey-200" />
+
+            <div className="flex flex-col gap-6">
               {/* Fechas */}
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "0.75rem",
-                }}
-              >
-                <label
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.5rem",
-                    fontSize: "0.625rem",
-                    fontWeight: 900,
-                    color: "#9CA3AF",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.1em",
-                    marginLeft: "0.25rem",
-                  }}
-                >
-                  <CalendarIcon width={14} height={14} /> Rango de Fechas
+              <div className="flex flex-col gap-3">
+                <label className="ml-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-grey-400">
+                  <CalendarIcon className="h-4 w-4" /> Rango de Fechas
                 </label>
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: "1rem",
-                  }}
-                >
+
+                <div className="grid grid-cols-2 gap-4">
                   <input
                     type="date"
                     value={filtros.fechaInicio}
                     onChange={(e) =>
                       setFiltros({ ...filtros, fechaInicio: e.target.value })
                     }
-                    style={{
-                      width: "100%",
-                      border: "2px solid #F3F4F6",
-                      borderRadius: "1rem",
-                      padding: "0.75rem 1rem",
-                      outline: "none",
-                      backgroundColor: "#F9FAFB",
-                      fontWeight: 700,
-                      color: "#111827",
-                      boxSizing: "border-box",
-                      fontFamily: "inherit",
-                    }}
+                    className="w-full rounded-2xl border-2 border-grey-200 bg-grey-100 px-4 py-3 font-semibold text-grey-700 outline-none transition-colors focus:border-primary-300"
                   />
                   <input
                     type="date"
@@ -326,453 +197,212 @@ export default function ConsultasPage() {
                     onChange={(e) =>
                       setFiltros({ ...filtros, fechaFin: e.target.value })
                     }
-                    style={{
-                      width: "100%",
-                      border: "2px solid #F3F4F6",
-                      borderRadius: "1rem",
-                      padding: "0.75rem 1rem",
-                      outline: "none",
-                      backgroundColor: "#F9FAFB",
-                      fontWeight: 700,
-                      color: "#111827",
-                      boxSizing: "border-box",
-                      fontFamily: "inherit",
-                    }}
+                    className="w-full rounded-2xl border-2 border-grey-200 bg-grey-100 px-4 py-3 font-semibold text-grey-700 outline-none transition-colors focus:border-primary-300"
                   />
                 </div>
               </div>
 
               {/* Empleado */}
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "0.75rem",
-                }}
-              >
-                <label
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.5rem",
-                    fontSize: "0.625rem",
-                    fontWeight: 900,
-                    color: "#9CA3AF",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.1em",
-                    marginLeft: "0.25rem",
-                  }}
-                >
-                  <PersonIcon width={14} height={14} /> Seleccionar Empleado
+              <div className="flex flex-col gap-3">
+                <label className="ml-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-grey-400">
+                  <PersonIcon className="h-4 w-4" /> Seleccionar Empleado
                 </label>
-                <select
-                  value={filtros.empleadoId}
-                  onChange={(e) =>
-                    setFiltros({ ...filtros, empleadoId: e.target.value })
+
+                <Select.Root
+                  value={filtros.empleadoId || "all"}
+                  onValueChange={(value) =>
+                    setFiltros({
+                      ...filtros,
+                      empleadoId: value === "all" ? "" : value,
+                    })
                   }
-                  style={{
-                    width: "100%",
-                    border: "2px solid #F3F4F6",
-                    borderRadius: "1rem",
-                    padding: "1rem 1.25rem",
-                    outline: "none",
-                    backgroundColor: "#F9FAFB",
-                    fontWeight: 700,
-                    color: "#111827",
-                    appearance: "none",
-                    cursor: "pointer",
-                    boxSizing: "border-box",
-                    fontFamily: "inherit",
-                  }}
                 >
-                  <option value="">Todos los colaboradores</option>
-                  {empleados.map((e) => (
-                    <option key={e.id} value={e.id}>
-                      {e.nombre} - {e.cedula}
-                    </option>
-                  ))}
-                </select>
+                  <Select.Trigger className="flex w-full cursor-pointer items-center justify-between rounded-2xl border-2 border-grey-200 bg-grey-100 px-5 py-4 text-left font-semibold text-grey-700 outline-none transition-colors focus:border-primary-300">
+                    <Select.Value placeholder="Todos los colaboradores" />
+                    <Select.Icon>
+                      <ChevronDownIcon className="h-4 w-4 text-grey-400" />
+                    </Select.Icon>
+                  </Select.Trigger>
+
+                  <Select.Portal>
+                    <Select.Content
+                      className="z-50 overflow-hidden rounded-xl border border-grey-200 bg-white"
+                      position="popper"
+                      sideOffset={6}
+                    >
+                      <Select.Viewport className="p-1">
+                        <Select.Item
+                          value="all"
+                          className="cursor-pointer rounded-lg px-3 py-2 text-sm font-medium text-grey-700 outline-none hover:bg-primary-100 hover:text-primary-500 focus:bg-primary-100 focus:text-primary-500"
+                        >
+                          <Select.ItemText>Todos los colaboradores</Select.ItemText>
+                        </Select.Item>
+
+                        {empleados.map((e) => (
+                          <Select.Item
+                            key={e.id}
+                            value={String(e.id)}
+                            className="cursor-pointer rounded-lg px-3 py-2 text-sm font-medium text-grey-700 outline-none hover:bg-primary-100 hover:text-primary-500 focus:bg-primary-100 focus:text-primary-500"
+                          >
+                            <Select.ItemText>
+                              {e.nombre} - {e.cedula}
+                            </Select.ItemText>
+                          </Select.Item>
+                        ))}
+                      </Select.Viewport>
+                    </Select.Content>
+                  </Select.Portal>
+                </Select.Root>
               </div>
 
               {/* Tipo de Movimiento */}
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "0.75rem",
-                }}
-              >
-                <label
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    fontSize: "0.625rem",
-                    fontWeight: 900,
-                    color: "#9CA3AF",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.1em",
-                    marginLeft: "0.25rem",
-                  }}
-                >
+              <div className="flex flex-col gap-3">
+                <label className="ml-1 text-xs font-semibold uppercase tracking-wide text-grey-400">
                   Tipo de Movimiento
                 </label>
-                <div
-                  style={{
-                    display: "flex",
-                    backgroundColor: "#F3F4F6",
-                    padding: "0.25rem",
-                    borderRadius: "1rem",
+
+                <ToggleGroup.Root
+                  type="single"
+                  value={filtros.tipoTransaccion}
+                  onValueChange={(value) => {
+                    if (!value) return;
+                    setFiltros({ ...filtros, tipoTransaccion: value });
                   }}
+                  className="grid grid-cols-3 gap-1 rounded-2xl bg-grey-100 p-1"
+                  aria-label="Tipo de movimiento"
                 >
-                  {["TODOS", "INGRESO", "DEDUCCION"].map((tipo) => (
-                    <button
-                      key={tipo}
-                      onClick={() =>
-                        setFiltros({ ...filtros, tipoTransaccion: tipo })
-                      }
-                      style={{
-                        flex: 1,
-                        padding: "0.75rem",
-                        borderRadius: "0.75rem",
-                        fontSize: "0.75rem",
-                        fontWeight: 900,
-                        cursor: "pointer",
-                        border: "none",
-                        fontFamily: "inherit",
-                        transition: "all 0.2s",
-                        backgroundColor:
-                          filtros.tipoTransaccion === tipo
-                            ? "#FFFFFF"
-                            : "transparent",
-                        color:
-                          filtros.tipoTransaccion === tipo
-                            ? "#111827"
-                            : "#6B7280",
-                        boxShadow:
-                          filtros.tipoTransaccion === tipo
-                            ? "0 1px 3px rgba(0,0,0,0.1)"
-                            : "none",
-                      }}
+                  {[
+                    { value: "TODOS", label: "Ambos" },
+                    { value: "INGRESO", label: "Ingresos" },
+                    { value: "DEDUCCION", label: "Deducciones" },
+                  ].map((tipo) => (
+                    <ToggleGroup.Item
+                      key={tipo.value}
+                      value={tipo.value}
+                      className="cursor-pointer rounded-xl px-3 py-3 text-xs font-semibold text-grey-500 transition-all data-[state=on]:bg-white data-[state=on]:text-grey-700 data-[state=on]:shadow"
                     >
-                      {tipo === "TODOS"
-                        ? "Ambos"
-                        : tipo === "INGRESO"
-                          ? "Ingresos"
-                          : "Deducciones"}
-                    </button>
+                      {tipo.label}
+                    </ToggleGroup.Item>
                   ))}
-                </div>
+                </ToggleGroup.Root>
               </div>
             </div>
 
             <button
               onClick={handleGenerarReporte}
               disabled={cargando}
-              style={{
-                width: "100%",
-                padding: "1.25rem",
-                backgroundColor: "#007A33",
-                color: "#ffffff",
-                fontWeight: 900,
-                fontSize: "1.125rem",
-                borderRadius: "1rem",
-                boxShadow: "0 20px 25px -5px rgba(0, 122, 51, 0.2)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "0.75rem",
-                border: "none",
-                cursor: cargando ? "not-allowed" : "pointer",
-                opacity: cargando ? 0.7 : 1,
-                fontFamily: "inherit",
-              }}
+              className="flex w-full items-center justify-center gap-3 rounded-2xl bg-primary-400 px-5 py-4 text-base font-semibold text-white transition-colors hover:bg-primary-500 disabled:cursor-not-allowed disabled:opacity-70"
             >
               {cargando ? (
-                <UpdateIcon className="animate-spin" width={24} height={24} />
+                <UpdateIcon className="h-6 w-6 animate-spin" />
               ) : (
-                <FileTextIcon width={24} height={24} />
+                <FileTextIcon className="h-6 w-6" />
               )}
-              GENERAR REPORTE
+              Generar Reporte
             </button>
           </div>
 
-          {/* PANEL DE RESULTADOS (DERECHA) */}
-          <div style={{ height: "100%" }}>
+          {/* ── PANEL DE RESULTADOS (DERECHA) ── */}
+          <div className="h-full">
             {!busquedaRealizada ? (
-              <div
-                style={{
-                  height: "100%",
-                  minHeight: "450px",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  backgroundColor: "#F3E8FF",
-                  border: "2px dashed #D8B4FE",
-                  borderRadius: "3rem",
-                  padding: "3rem",
-                  textAlign: "center",
-                  boxSizing: "border-box",
-                }}
-              >
-                <div
-                  style={{
-                    backgroundColor: "#ffffff",
-                    padding: "1.5rem",
-                    borderRadius: "9999px",
-                    boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)",
-                    marginBottom: "1.5rem",
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                  }}
-                >
-                  <MagnifyingGlassIcon width={48} height={48} color="#A855F7" />
+              <div className="flex min-h-[450px] h-full flex-col items-center justify-center rounded-3xl border-2 border-dashed border-grey-300 bg-grey-100 px-12 py-12 text-center">
+                <div className="mb-6 flex items-center justify-center rounded-full bg-white p-6 shadow">
+                  <MagnifyingGlassIcon className="h-12 w-12 text-grey-500" />
                 </div>
-                <p
-                  style={{
-                    color: "#7E22CE",
-                    fontSize: "1.25rem",
-                    fontWeight: 900,
-                    margin: 0,
-                    maxWidth: "20rem",
-                    lineHeight: 1.2,
-                  }}
-                >
+                <p className="m-0 max-w-xs text-xl font-semibold leading-tight text-grey-600">
                   Define tus parámetros y presiona Generar Reporte para ver los
                   datos.
                 </p>
               </div>
             ) : (
-              <div
-                style={{
-                  backgroundColor: "#ffffff",
-                  borderRadius: "1.5rem",
-                  boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)",
-                  display: "flex",
-                  flexDirection: "column",
-                  overflow: "hidden",
-                  height: "100%",
-                  minHeight: "450px",
-                  border: "none",
-                }}
-              >
-                <div
-                  style={{
-                    padding: "1.5rem",
-                    borderBottom: "1px solid #F3F4F6",
-                    backgroundColor: "#ffffff",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <h3
-                    style={{
-                      margin: 0,
-                      fontSize: "1.25rem",
-                      fontWeight: 900,
-                      color: "#111827",
-                      textTransform: "uppercase",
-                      letterSpacing: "-0.05em",
-                    }}
-                  >
+              <div className="flex min-h-[450px] h-full flex-col overflow-hidden rounded-3xl border border-grey-200 bg-white shadow-[0_20px_25px_-5px_rgba(0,0,0,0.1)]">
+                <div className="flex items-center justify-between bg-white px-6 py-6">
+                  <h3 className="m-0 text-lg font-bold text-grey-700">
                     Registros Encontrados
                   </h3>
-                  <span
-                    style={{
-                      backgroundColor: "#4F46E5",
-                      color: "#ffffff",
-                      padding: "0.25rem 1rem",
-                      borderRadius: "9999px",
-                      fontSize: "0.75rem",
-                      fontWeight: 900,
-                    }}
-                  >
-                    {resultados.length}
-                  </span>
+
+                  <Tooltip.Provider delayDuration={250}>
+                    <Tooltip.Root>
+                      <Tooltip.Trigger asChild>
+                        <span className="rounded-full bg-primary-400 px-4 py-1 text-xs font-semibold text-white">
+                          {resultados.length}
+                        </span>
+                      </Tooltip.Trigger>
+                      <Tooltip.Portal>
+                        <Tooltip.Content
+                          sideOffset={6}
+                          className="rounded bg-grey-700 px-2 py-1 text-xs text-white"
+                        >
+                          Cantidad total de registros filtrados
+                          <Tooltip.Arrow className="fill-grey-700" />
+                        </Tooltip.Content>
+                      </Tooltip.Portal>
+                    </Tooltip.Root>
+                  </Tooltip.Provider>
                 </div>
 
-                <div style={{ flex: 1, overflowY: "auto", maxHeight: "500px" }}>
+                <Separator.Root className="h-px bg-grey-200" />
+
+                <div className="max-h-[500px] flex-1 overflow-y-auto">
                   {resultados.length === 0 ? (
-                    <div
-                      style={{
-                        padding: "5rem",
-                        textAlign: "center",
-                        color: "#9CA3AF",
-                        fontWeight: 700,
-                        fontStyle: "italic",
-                      }}
-                    >
+                    <div className="px-8 py-20 text-center text-sm font-semibold italic text-grey-400">
                       No hay transacciones que coincidan con estos criterios.
                     </div>
                   ) : (
-                    <table
-                      style={{
-                        width: "100%",
-                        textAlign: "left",
-                        borderCollapse: "collapse",
-                      }}
-                    >
-                      <thead
-                        style={{
-                          backgroundColor: "#F9FAFB",
-                          position: "sticky",
-                          top: 0,
-                        }}
-                      >
+                    <table className="w-full border-collapse text-left">
+                      <thead className="sticky top-0 bg-grey-100">
                         <tr>
-                          <th
-                            style={{
-                              padding: "1.25rem 2rem",
-                              color: "#9CA3AF",
-                              fontSize: "0.625rem",
-                              fontWeight: 900,
-                              textTransform: "uppercase",
-                              letterSpacing: "0.1em",
-                              borderBottom: "1px solid #F3F4F6",
-                            }}
-                          >
+                          <th className="border-b border-grey-200 px-8 py-5 text-xs font-semibold uppercase tracking-wide text-grey-400">
                             Fecha
                           </th>
-                          <th
-                            style={{
-                              padding: "1.25rem",
-                              color: "#9CA3AF",
-                              fontSize: "0.625rem",
-                              fontWeight: 900,
-                              textTransform: "uppercase",
-                              letterSpacing: "0.1em",
-                              borderBottom: "1px solid #F3F4F6",
-                            }}
-                          >
+                          <th className="border-b border-grey-200 px-5 py-5 text-xs font-semibold uppercase tracking-wide text-grey-400">
                             Empleado
                           </th>
-                          <th
-                            style={{
-                              padding: "1.25rem",
-                              color: "#9CA3AF",
-                              fontSize: "0.625rem",
-                              fontWeight: 900,
-                              textTransform: "uppercase",
-                              letterSpacing: "0.1em",
-                              borderBottom: "1px solid #F3F4F6",
-                            }}
-                          >
+                          <th className="border-b border-grey-200 px-5 py-5 text-xs font-semibold uppercase tracking-wide text-grey-400">
                             Tipo
                           </th>
-                          <th
-                            style={{
-                              padding: "1.25rem 2rem",
-                              color: "#9CA3AF",
-                              fontSize: "0.625rem",
-                              fontWeight: 900,
-                              textTransform: "uppercase",
-                              letterSpacing: "0.1em",
-                              borderBottom: "1px solid #F3F4F6",
-                              textAlign: "right",
-                            }}
-                          >
+                          <th className="border-b border-grey-200 px-8 py-5 text-right text-xs font-semibold uppercase tracking-wide text-grey-400">
                             Monto
                           </th>
                         </tr>
                       </thead>
+
                       <tbody>
                         {currentRecords.map((r, idx) => (
                           <tr
                             key={r.transaccionId || idx}
-                            style={{
-                              backgroundColor: "#ffffff",
-                              transition: "background-color 0.2s",
-                            }}
-                            onMouseEnter={(e) =>
-                              (e.currentTarget.style.backgroundColor =
-                                "#F9FAFB")
-                            }
-                            onMouseLeave={(e) =>
-                              (e.currentTarget.style.backgroundColor =
-                                "#ffffff")
-                            }
+                            className="bg-white transition-colors hover:bg-grey-100"
                           >
-                            <td
-                              style={{
-                                padding: "1.25rem 2rem",
-                                borderBottom: "1px solid #F9FAFB",
-                                color: "#6B7280",
-                                fontWeight: 700,
-                                fontSize: "0.875rem",
-                              }}
-                            >
+                            <td className="border-b border-grey-100 px-8 py-5 text-sm font-semibold text-grey-500">
                               {formatearFechaVisual(r.fecha)}
                             </td>
-                            <td
-                              style={{
-                                padding: "1.25rem",
-                                borderBottom: "1px solid #F9FAFB",
-                              }}
-                            >
-                              <div
-                                style={{ fontWeight: 900, color: "#111827" }}
-                              >
+                            <td className="border-b border-grey-100 px-5 py-5">
+                              <div className="font-semibold text-grey-700">
                                 {getEmpleadoNombre(r.empleadoId)}
                               </div>
                             </td>
-                            <td
-                              style={{
-                                padding: "1.25rem",
-                                borderBottom: "1px solid #F9FAFB",
-                              }}
-                            >
-                              <div
-                                style={{
-                                  display: "flex",
-                                  flexDirection: "column",
-                                  alignItems: "flex-start",
-                                  gap: "0.25rem",
-                                }}
-                              >
-                                <span
-                                  style={{
-                                    fontSize: "0.875rem",
-                                    fontWeight: 800,
-                                    color: "#4B5563",
-                                  }}
-                                >
+                            <td className="border-b border-grey-100 px-5 py-5">
+                              <div className="flex flex-col items-start gap-1">
+                                <span className="text-sm font-semibold text-grey-600">
                                   {r.tipoNombre}
                                 </span>
                                 <span
-                                  style={{
-                                    fontSize: "0.625rem",
-                                    fontWeight: 900,
-                                    textTransform: "uppercase",
-                                    padding: "0.15rem 0.4rem",
-                                    borderRadius: "0.25rem",
-                                    backgroundColor:
-                                      r.tipoTransaccion === "INGRESO"
-                                        ? "#D1FAE5"
-                                        : "#FEE2E2",
-                                    color:
-                                      r.tipoTransaccion === "INGRESO"
-                                        ? "#059669"
-                                        : "#DC2626",
-                                  }}
+                                  className={`rounded px-2 py-0.5 text-xs font-semibold uppercase tracking-wide ${
+                                    r.tipoTransaccion === "INGRESO"
+                                      ? "bg-primary-100 text-primary-500"
+                                      : "bg-grey-200 text-grey-600"
+                                  }`}
                                 >
                                   {r.tipoTransaccion}
                                 </span>
                               </div>
                             </td>
                             <td
-                              style={{
-                                padding: "1.25rem 2rem",
-                                borderBottom: "1px solid #F9FAFB",
-                                textAlign: "right",
-                                fontWeight: 900,
-                                fontSize: "1.125rem",
-                                color:
-                                  r.tipoTransaccion === "INGRESO"
-                                    ? "#059669"
-                                    : "#EF4444",
-                              }}
+                              className={`border-b border-grey-100 px-8 py-5 text-right text-base font-semibold ${
+                                r.tipoTransaccion === "INGRESO"
+                                  ? "text-primary-500"
+                                  : "text-grey-600"
+                              }`}
                             >
                               {r.tipoTransaccion === "INGRESO" ? "+" : "-"}$
                               {r.monto?.toLocaleString("en-US", {
@@ -788,96 +418,48 @@ export default function ConsultasPage() {
 
                 {/* Paginación */}
                 {resultados.length > recordsPerPage && (
-                  <div
-                    style={{
-                      padding: "1rem",
-                      backgroundColor: "#F9FAFB",
-                      borderTop: "1px solid #F3F4F6",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                    }}
-                  >
-                    <p
-                      style={{
-                        margin: 0,
-                        fontSize: "0.625rem",
-                        fontWeight: 900,
-                        color: "#9CA3AF",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.1em",
-                      }}
-                    >
+                  <div className="flex items-center justify-between border-t border-grey-200 bg-grey-100 px-4 py-4">
+                    <p className="m-0 text-xs font-semibold uppercase tracking-wide text-grey-400">
                       Página {currentPage} de {totalPages}
                     </p>
-                    <div style={{ display: "flex", gap: "0.5rem" }}>
+
+                    <div className="flex items-center gap-2">
                       <button
                         onClick={() =>
                           setCurrentPage((prev) => Math.max(prev - 1, 1))
                         }
                         disabled={currentPage === 1}
-                        style={{
-                          padding: "0.375rem",
-                          borderRadius: "0.5rem",
-                          backgroundColor: "#ffffff",
-                          border: "1px solid #E5E7EB",
-                          color: "#9CA3AF",
-                          cursor: currentPage === 1 ? "not-allowed" : "pointer",
-                          opacity: currentPage === 1 ? 0.3 : 1,
-                        }}
+                        className="rounded-lg border border-grey-200 bg-white p-1.5 text-grey-400 transition-colors hover:bg-grey-100 hover:text-grey-700 disabled:cursor-not-allowed disabled:opacity-30"
                       >
-                        <ChevronLeftIcon width={16} height={16} />
+                        <ChevronLeftIcon className="h-4 w-4" />
                       </button>
-                      <div style={{ display: "flex", gap: "0.25rem" }}>
-                        {Array.from(
-                          { length: totalPages },
-                          (_, i) => i + 1,
-                        ).map((page) => (
-                          <button
-                            key={page}
-                            onClick={() => setCurrentPage(page)}
-                            style={{
-                              width: "1.75rem",
-                              height: "1.75rem",
-                              borderRadius: "0.5rem",
-                              fontWeight: 900,
-                              fontSize: "0.625rem",
-                              border:
+
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                          (page) => (
+                            <button
+                              key={page}
+                              onClick={() => setCurrentPage(page)}
+                              className={`h-7 w-7 rounded-lg text-xs font-semibold transition-colors ${
                                 page === currentPage
-                                  ? "none"
-                                  : "1px solid #E5E7EB",
-                              backgroundColor:
-                                page === currentPage ? "#4F46E5" : "#ffffff",
-                              color:
-                                page === currentPage ? "#ffffff" : "#9CA3AF",
-                              cursor: "pointer",
-                            }}
-                          >
-                            {page}
-                          </button>
-                        ))}
+                                  ? "bg-primary-400 text-white"
+                                  : "border border-grey-200 bg-white text-grey-400 hover:bg-grey-100"
+                              }`}
+                            >
+                              {page}
+                            </button>
+                          ),
+                        )}
                       </div>
+
                       <button
                         onClick={() =>
-                          setCurrentPage((prev) =>
-                            Math.min(prev + 1, totalPages),
-                          )
+                          setCurrentPage((prev) => Math.min(prev + 1, totalPages))
                         }
                         disabled={currentPage === totalPages}
-                        style={{
-                          padding: "0.375rem",
-                          borderRadius: "0.5rem",
-                          backgroundColor: "#ffffff",
-                          border: "1px solid #E5E7EB",
-                          color: "#9CA3AF",
-                          cursor:
-                            currentPage === totalPages
-                              ? "not-allowed"
-                              : "pointer",
-                          opacity: currentPage === totalPages ? 0.3 : 1,
-                        }}
+                        className="rounded-lg border border-grey-200 bg-white p-1.5 text-grey-400 transition-colors hover:bg-grey-100 hover:text-grey-700 disabled:cursor-not-allowed disabled:opacity-30"
                       >
-                        <ChevronRightIcon width={16} height={16} />
+                        <ChevronRightIcon className="h-4 w-4" />
                       </button>
                     </div>
                   </div>
@@ -887,40 +469,33 @@ export default function ConsultasPage() {
           </div>
         </div>
 
-        {/* BOTÓN DESCARGAR FUNCIONAL */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            paddingTop: "1rem",
-            paddingBottom: "3rem",
-            width: "100%",
-          }}
-        >
-          <button
-            onClick={handleDescargarReporte}
-            disabled={resultados.length === 0}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "1rem",
-              padding: "1.25rem 3rem",
-              backgroundColor: "#849A9A",
-              color: "#ffffff",
-              fontWeight: 900,
-              fontSize: "1.25rem",
-              borderRadius: "1rem",
-              boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)",
-              border: "none",
-              cursor: resultados.length === 0 ? "not-allowed" : "pointer",
-              opacity: resultados.length === 0 ? 0.5 : 1,
-              transition: "all 0.2s",
-              fontFamily: "inherit",
-            }}
-          >
-            <DownloadIcon width={24} height={24} strokeWidth={3} />
-            DESCARGAR REPORTES
-          </button>
+        {/* ── BOTÓN DESCARGAR FUNCIONAL ── */}
+        <div className="flex w-full justify-center pt-4 pb-12">
+          <Tooltip.Provider delayDuration={250}>
+            <Tooltip.Root>
+              <Tooltip.Trigger asChild>
+                <button
+                  onClick={handleDescargarReporte}
+                  disabled={resultados.length === 0}
+                  className="flex items-center gap-4 rounded-2xl bg-grey-500 px-12 py-4 text-base font-semibold text-white transition-colors hover:bg-grey-600 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <DownloadIcon className="h-6 w-6" />
+                  Descargar Reporte
+                </button>
+              </Tooltip.Trigger>
+              <Tooltip.Portal>
+                <Tooltip.Content
+                  sideOffset={6}
+                  className="rounded bg-grey-700 px-2 py-1 text-xs text-white"
+                >
+                  {resultados.length === 0
+                    ? "Primero generá una consulta para exportar"
+                    : "Exportar resultado actual en PDF"}
+                  <Tooltip.Arrow className="fill-grey-700" />
+                </Tooltip.Content>
+              </Tooltip.Portal>
+            </Tooltip.Root>
+          </Tooltip.Provider>
         </div>
       </div>
     </div>
