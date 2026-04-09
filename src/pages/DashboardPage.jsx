@@ -10,6 +10,7 @@ import {
 } from '@radix-ui/react-icons'
 import { useDashboard } from '../hooks/useDashboard.js'
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 async function handleExportarPDF(empleados) {
   const { exportarEmpleadosPDF } = await import('../lib/exportar.js')
@@ -34,6 +35,7 @@ function formatFechaCorta(fechaStr) {
 }
 
 function DashboardPage() {
+  const navigate = useNavigate()
   const { data, loading, error } = useDashboard()
   const [exportando, setExportando] = useState(false)
 
@@ -222,7 +224,10 @@ function DashboardPage() {
           {/* Header tabla */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-grey-200">
             <h2 className="text-lg font-bold text-grey-700">Actividad Reciente</h2>
-            <button className="flex items-center gap-1 text-sm text-primary-400 font-medium hover:text-primary-500 transition-colors cursor-pointer">
+            <button
+              onClick={() => navigate('/transacciones')}
+              className="flex items-center gap-1 text-sm text-primary-400 font-medium hover:text-primary-500 transition-colors cursor-pointer"
+            >
               Ver todas
               <ArrowRightIcon />
             </button>
