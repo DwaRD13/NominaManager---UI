@@ -6,6 +6,7 @@ import TiposIngresosPage from "./pages/TiposIngresosPage.jsx";
 import TiposDeduccionesPage from "./pages/TiposDeduccionesPage.jsx";
 import TransaccionesPage from "./pages/TransaccionesPage.jsx";
 import ConsultasPage from "./pages/ConsultasPage.jsx";
+import AsientosContablesPage from "./pages/AsientosContablesPage.jsx";
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
           <Route path="tipos-deducciones" element={<TiposDeduccionesPage />} />
           <Route path="transacciones" element={<TransaccionesPage />} />
           <Route path="consultas" element={<ConsultasPage />} />
+          <Route path="asientos-contables" element={<AsientosContablesPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
