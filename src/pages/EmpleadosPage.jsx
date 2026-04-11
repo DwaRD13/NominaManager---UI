@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Dialog, Select, Separator, AlertDialog, Tooltip } from 'radix-ui'
+import { useState } from "react";
+import { Dialog, Select, Separator, AlertDialog, Tooltip } from "radix-ui";
 import {
   MagnifyingGlassIcon,
   PlusIcon,
@@ -12,113 +12,124 @@ import {
   DownloadIcon,
   FileTextIcon,
   UpdateIcon,
-} from '@radix-ui/react-icons'
-import { useEmpleados } from '../hooks/useEmpleados.js'
-import { useToast } from '../hooks/useToast.jsx'
-import { validarCedulaDominicana } from '../utils/validations.js'
+} from "@radix-ui/react-icons";
+import { useEmpleados } from "../hooks/useEmpleados.js";
+import { useToast } from "../hooks/useToast.jsx";
+import { validarCedulaDominicana } from "../utils/validations.js";
 
 // Importación lazy de las funciones de exportación — las librerías (jsPDF, xlsx)
 // solo se cargan cuando el usuario hace click, no al abrir la página.
 async function handleExportarPDF(empleados) {
-  const { exportarEmpleadosPDF } = await import('../lib/exportar.js')
-  exportarEmpleadosPDF(empleados)
+  const { exportarEmpleadosPDF } = await import("../lib/exportar.js");
+  exportarEmpleadosPDF(empleados);
 }
 
 async function handleExportarXLSX(empleados) {
-  const { exportarEmpleadosXLSX } = await import('../lib/exportar.js')
-  exportarEmpleadosXLSX(empleados)
+  const { exportarEmpleadosXLSX } = await import("../lib/exportar.js");
+  exportarEmpleadosXLSX(empleados);
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 /** Genera iniciales a partir del nombre completo */
-function getIniciales(nombre = '') {
-  const partes = nombre.trim().split(' ')
-  if (partes.length === 1) return partes[0].slice(0, 2).toUpperCase()
-  return (partes[0][0] + partes[1][0]).toUpperCase()
+function getIniciales(nombre = "") {
+  const partes = nombre.trim().split(" ");
+  if (partes.length === 1) return partes[0].slice(0, 2).toUpperCase();
+  return (partes[0][0] + partes[1][0]).toUpperCase();
 }
 
 /** Formatea un BigDecimal/number como moneda */
 function formatSalario(valor) {
-  if (valor == null) return '—'
-  return new Intl.NumberFormat('es-DO', { style: 'currency', currency: 'DOP' }).format(valor)
+  if (valor == null) return "—";
+  return new Intl.NumberFormat("es-DO", {
+    style: "currency",
+    currency: "DOP",
+  }).format(valor);
 }
 
 // ── Sub-componente: Avatar de iniciales ──────────────────────────────────────
 function Avatar({ nombre }) {
   return (
     <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary-400 shrink-0">
-      <span className="text-xs font-semibold text-white">{getIniciales(nombre)}</span>
+      <span className="text-xs font-semibold text-white">
+        {getIniciales(nombre)}
+      </span>
     </div>
-  )
+  );
 }
 
 // ── Sub-componente: Badge de estado ──────────────────────────────────────────
 function EstadoBadge({ estado }) {
-  const isActivo = estado?.toUpperCase() === 'ACTIVO'
+  const isActivo = estado?.toUpperCase() === "ACTIVO";
   return (
     <span
       className={`inline-flex items-center justify-center px-3 py-1 rounded-lg text-xs font-semibold w-fit ${
         isActivo
-          ? 'bg-primary-100 text-primary-500'
-          : 'bg-grey-200 text-grey-500'
+          ? "bg-primary-100 text-primary-500"
+          : "bg-grey-200 text-grey-500"
       }`}
     >
-      {estado ?? '—'}
+      {estado ?? "—"}
     </span>
-  )
+  );
 }
 
 // ── Estado inicial del formulario ─────────────────────────────────────────────
 const FORM_VACIO = {
-  nombre: '',
-  cedula: '',
-  departamento: '',
-  puesto: '',
-  salarioMensual: '',
-  idNomina: '',
-  estado: 'ACTIVO',
-}
+  nombre: "",
+  cedula: "",
+  departamento: "",
+  puesto: "",
+  salarioMensual: "",
+  idNomina: "",
+  estado: "ACTIVO",
+};
 
 // ── Sub-componente: Dialog Nuevo / Editar Empleado ───────────────────────────
-function EmpleadoDialog({ trigger, titulo = 'Nuevo Empleado', empleadoInicial = null, onGuardar, saving }) {
-  const [open, setOpen] = useState(false)
-  const [form, setForm] = useState(FORM_VACIO)
-  const [formError, setFormError] = useState(null)
+function EmpleadoDialog({
+  trigger,
+  titulo = "Nuevo Empleado",
+  empleadoInicial = null,
+  onGuardar,
+  saving,
+}) {
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState(FORM_VACIO);
+  const [formError, setFormError] = useState(null);
 
   function handleOpen(val) {
-    setOpen(val)
+    setOpen(val);
     if (val) {
       // Si es edición, pre-llenamos el form con el empleado
       setForm(
         empleadoInicial
           ? {
-              nombre: empleadoInicial.nombre ?? '',
-              cedula: empleadoInicial.cedula ?? '',
-              departamento: empleadoInicial.departamento ?? '',
-              puesto: empleadoInicial.puesto ?? '',
-              salarioMensual: empleadoInicial.salarioMensual ?? '',
-              idNomina: empleadoInicial.idNomina ?? '',
-              estado: empleadoInicial.estado ?? 'ACTIVO',
+              nombre: empleadoInicial.nombre ?? "",
+              cedula: empleadoInicial.cedula ?? "",
+              departamento: empleadoInicial.departamento ?? "",
+              puesto: empleadoInicial.puesto ?? "",
+              salarioMensual: empleadoInicial.salarioMensual ?? "",
+              idNomina: empleadoInicial.idNomina ?? "",
+              estado: empleadoInicial.estado ?? "ACTIVO",
             }
-          : FORM_VACIO
-      )
-      setFormError(null)
+          : FORM_VACIO,
+      );
+      setFormError(null);
     }
   }
 
   function set(campo, valor) {
-    setForm((prev) => ({ ...prev, [campo]: valor }))
+    setForm((prev) => ({ ...prev, [campo]: valor }));
   }
 
   async function handleGuardar() {
     if (!form.nombre.trim() || !form.cedula.trim() || !form.salarioMensual) {
-      setFormError('Nombre, cédula y salario son obligatorios.')
-      return
+      setFormError("Nombre, cédula y salario son obligatorios.");
+      return;
     }
 
-    if(!validarCedulaDominicana(form.cedula)) {
-      setFormError('La cédula ingresada no es válida.')
+    if (!validarCedulaDominicana(form.cedula)) {
+      setFormError("La cédula ingresada no es válida.");
       return;
     }
 
@@ -131,14 +142,14 @@ function EmpleadoDialog({ trigger, titulo = 'Nuevo Empleado', empleadoInicial = 
       salarioMensual: parseFloat(form.salarioMensual),
       idNomina: form.idNomina ? parseInt(form.idNomina) : null,
       estado: form.estado,
-    }
+    };
 
     try {
-      setFormError(null)
-      await onGuardar(payload)
-      setOpen(false)
+      setFormError(null);
+      await onGuardar(payload);
+      setOpen(false);
     } catch (e) {
-      setFormError(e.message)
+      setFormError(e.message);
     }
   }
 
@@ -149,13 +160,16 @@ function EmpleadoDialog({ trigger, titulo = 'Nuevo Empleado', empleadoInicial = 
         <Dialog.Overlay className="fixed inset-0 bg-black/40 z-40" />
         <Dialog.Content
           className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-white rounded-xl border border-grey-200 p-6 w-full max-w-lg flex flex-col gap-5 focus:outline-none"
-          style={{ boxShadow: '0px 8px 32px 0px rgba(0,0,0,0.12)' }}
+          style={{ boxShadow: "0px 8px 32px 0px rgba(0,0,0,0.12)" }}
         >
           {/* ── Header ── */}
           <div className="flex flex-col gap-1">
-            <Dialog.Title className="text-xl font-bold text-grey-700">{titulo}</Dialog.Title>
+            <Dialog.Title className="text-xl font-bold text-grey-700">
+              {titulo}
+            </Dialog.Title>
             <Dialog.Description className="text-sm text-grey-400">
-              Completá los datos del empleado. Los campos marcados con * son obligatorios.
+              Completá los datos del empleado. Los campos marcados con * son
+              obligatorios.
             </Dialog.Description>
           </div>
 
@@ -163,14 +177,15 @@ function EmpleadoDialog({ trigger, titulo = 'Nuevo Empleado', empleadoInicial = 
 
           {/* ── Formulario ── */}
           <div className="flex flex-col gap-4">
-
             {/* Nombre */}
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-semibold text-grey-600">Nombre completo *</label>
+              <label className="text-xs font-semibold text-grey-600">
+                Nombre completo *
+              </label>
               <input
                 type="text"
                 value={form.nombre}
-                onChange={(e) => set('nombre', e.target.value)}
+                onChange={(e) => set("nombre", e.target.value)}
                 placeholder="Ej: Nelson Diaz"
                 className="w-full px-3 py-2 text-sm rounded-lg border border-grey-200 bg-white text-grey-700 placeholder:text-grey-300 focus:outline-none focus:border-primary-400 transition-colors"
               />
@@ -179,18 +194,25 @@ function EmpleadoDialog({ trigger, titulo = 'Nuevo Empleado', empleadoInicial = 
             {/* Cédula + Estado */}
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-semibold text-grey-600">Cédula *</label>
+                <label className="text-xs font-semibold text-grey-600">
+                  Cédula *
+                </label>
                 <input
                   type="text"
                   value={form.cedula}
-                  onChange={(e) => set('cedula', e.target.value)}
+                  onChange={(e) => set("cedula", e.target.value)}
                   placeholder="Ej: 001-1234567-8"
                   className="w-full px-3 py-2 text-sm rounded-lg border border-grey-200 bg-white text-grey-700 placeholder:text-grey-300 focus:outline-none focus:border-primary-400 transition-colors"
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-semibold text-grey-600">Estado</label>
-                <Select.Root value={form.estado} onValueChange={(v) => set('estado', v)}>
+                <label className="text-xs font-semibold text-grey-600">
+                  Estado
+                </label>
+                <Select.Root
+                  value={form.estado}
+                  onValueChange={(v) => set("estado", v)}
+                >
                   <Select.Trigger className="flex items-center justify-between w-full px-3 py-2 text-sm rounded-lg border border-grey-200 bg-white text-grey-700 focus:outline-none focus:border-primary-400 transition-colors cursor-pointer">
                     <Select.Value />
                     <Select.Icon>
@@ -200,14 +222,14 @@ function EmpleadoDialog({ trigger, titulo = 'Nuevo Empleado', empleadoInicial = 
                   <Select.Portal>
                     <Select.Content
                       className="bg-white border border-grey-200 rounded-lg overflow-hidden z-50"
-                      style={{ boxShadow: '0px 4px 16px 0px rgba(0,0,0,0.08)' }}
+                      style={{ boxShadow: "0px 4px 16px 0px rgba(0,0,0,0.08)" }}
                       position="popper"
                       sideOffset={4}
                     >
                       <Select.Viewport className="p-1">
                         {[
-                          { value: 'ACTIVO', label: 'Activo' },
-                          { value: 'INACTIVO', label: 'Inactivo' },
+                          { value: "ACTIVO", label: "Activo" },
+                          { value: "INACTIVO", label: "Inactivo" },
                         ].map((opt) => (
                           <Select.Item
                             key={opt.value}
@@ -230,21 +252,25 @@ function EmpleadoDialog({ trigger, titulo = 'Nuevo Empleado', empleadoInicial = 
             {/* Departamento + Puesto */}
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-semibold text-grey-600">Departamento</label>
+                <label className="text-xs font-semibold text-grey-600">
+                  Departamento
+                </label>
                 <input
                   type="text"
                   value={form.departamento}
-                  onChange={(e) => set('departamento', e.target.value)}
+                  onChange={(e) => set("departamento", e.target.value)}
                   placeholder="Ej: Tecnología"
                   className="w-full px-3 py-2 text-sm rounded-lg border border-grey-200 bg-white text-grey-700 placeholder:text-grey-300 focus:outline-none focus:border-primary-400 transition-colors"
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-semibold text-grey-600">Puesto</label>
+                <label className="text-xs font-semibold text-grey-600">
+                  Puesto
+                </label>
                 <input
                   type="text"
                   value={form.puesto}
-                  onChange={(e) => set('puesto', e.target.value)}
+                  onChange={(e) => set("puesto", e.target.value)}
                   placeholder="Ej: Desarrollador"
                   className="w-full px-3 py-2 text-sm rounded-lg border border-grey-200 bg-white text-grey-700 placeholder:text-grey-300 focus:outline-none focus:border-primary-400 transition-colors"
                 />
@@ -254,24 +280,28 @@ function EmpleadoDialog({ trigger, titulo = 'Nuevo Empleado', empleadoInicial = 
             {/* Salario + ID Nómina */}
             <div className="grid grid-cols-2 gap-3">
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-semibold text-grey-600">Salario Mensual *</label>
+                <label className="text-xs font-semibold text-grey-600">
+                  Salario Mensual *
+                </label>
                 <input
                   type="number"
                   min="0"
                   step="0.01"
                   value={form.salarioMensual}
-                  onChange={(e) => set('salarioMensual', e.target.value)}
+                  onChange={(e) => set("salarioMensual", e.target.value)}
                   placeholder="Ej: 60000"
                   className="w-full px-3 py-2 text-sm rounded-lg border border-grey-200 bg-white text-grey-700 placeholder:text-grey-300 focus:outline-none focus:border-primary-400 transition-colors"
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-semibold text-grey-600">ID Nómina</label>
+                <label className="text-xs font-semibold text-grey-600">
+                  ID Nómina
+                </label>
                 <input
                   type="number"
                   min="0"
                   value={form.idNomina}
-                  onChange={(e) => set('idNomina', e.target.value)}
+                  onChange={(e) => set("idNomina", e.target.value)}
                   placeholder="Ej: 1"
                   className="w-full px-3 py-2 text-sm rounded-lg border border-grey-200 bg-white text-grey-700 placeholder:text-grey-300 focus:outline-none focus:border-primary-400 transition-colors"
                 />
@@ -298,7 +328,7 @@ function EmpleadoDialog({ trigger, titulo = 'Nuevo Empleado', empleadoInicial = 
               onClick={handleGuardar}
               disabled={saving}
               className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-primary-400 rounded-lg hover:bg-primary-500 transition-colors cursor-pointer disabled:opacity-60"
-              style={{ boxShadow: '0px 2px 8px 0px rgba(0,128,128,0.20)' }}
+              style={{ boxShadow: "0px 2px 8px 0px rgba(0,128,128,0.20)" }}
             >
               {saving && <UpdateIcon className="animate-spin" />}
               Guardar
@@ -307,16 +337,16 @@ function EmpleadoDialog({ trigger, titulo = 'Nuevo Empleado', empleadoInicial = 
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
-  )
+  );
 }
 
 // ── Sub-componente: AlertDialog Eliminar ─────────────────────────────────────
 function EliminarDialog({ nombre, onEliminar, saving }) {
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(false);
 
   async function handleEliminar() {
-    await onEliminar()
-    setOpen(false)
+    await onEliminar();
+    setOpen(false);
   }
 
   return (
@@ -330,13 +360,15 @@ function EliminarDialog({ nombre, onEliminar, saving }) {
         <AlertDialog.Overlay className="fixed inset-0 bg-black/40 z-40" />
         <AlertDialog.Content
           className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-white rounded-xl border border-grey-200 p-6 w-full max-w-md flex flex-col gap-4 focus:outline-none"
-          style={{ boxShadow: '0px 8px 32px 0px rgba(0,0,0,0.12)' }}
+          style={{ boxShadow: "0px 8px 32px 0px rgba(0,0,0,0.12)" }}
         >
           <AlertDialog.Title className="text-lg font-bold text-grey-700">
             ¿Eliminar empleado?
           </AlertDialog.Title>
           <AlertDialog.Description className="text-sm text-grey-400">
-            Estás por eliminar a <span className="font-semibold text-grey-700">{nombre}</span>. Esta acción no se puede deshacer.
+            Estás por eliminar a{" "}
+            <span className="font-semibold text-grey-700">{nombre}</span>. Esta
+            acción no se puede deshacer.
           </AlertDialog.Description>
           <div className="flex items-center justify-end gap-3 pt-1">
             <AlertDialog.Cancel asChild>
@@ -359,7 +391,7 @@ function EliminarDialog({ nombre, onEliminar, saving }) {
         </AlertDialog.Content>
       </AlertDialog.Portal>
     </AlertDialog.Root>
-  )
+  );
 }
 
 // ── Sub-componente: Estado de carga ──────────────────────────────────────────
@@ -368,7 +400,7 @@ function LoadingRows() {
     <div key={i}>
       <div
         className="grid items-center px-5 py-4 animate-pulse"
-        style={{ gridTemplateColumns: '2fr 1.2fr 1fr 1fr 0.7fr' }}
+        style={{ gridTemplateColumns: "2fr 1.2fr 1fr 1fr 0.7fr" }}
       >
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-grey-200 shrink-0" />
@@ -387,12 +419,12 @@ function LoadingRows() {
       </div>
       {i < 4 && <Separator.Root className="h-px bg-grey-200 mx-5" />}
     </div>
-  ))
+  ));
 }
 
 // ── Página principal ──────────────────────────────────────────────────────────
 function EmpleadosPage() {
-  const { toast } = useToast()
+  const { toast } = useToast();
 
   const {
     empleados,
@@ -413,29 +445,39 @@ function EmpleadosPage() {
     actualizar,
     eliminar,
     saving,
-  } = useEmpleados()
+  } = useEmpleados();
 
   // ── Wrappers con toast ──
   async function handleCrear(payload) {
-    await crear(payload)
-    toast({ title: 'Empleado creado', description: `"${payload.nombre}" fue agregado correctamente.`, variant: 'success' })
+    await crear(payload);
+    toast({
+      title: "Empleado creado",
+      description: `"${payload.nombre}" fue agregado correctamente.`,
+      variant: "success",
+    });
   }
   async function handleActualizar(payload) {
-    await actualizar(payload)
-    toast({ title: 'Empleado actualizado', description: `"${payload.nombre}" fue modificado correctamente.`, variant: 'success' })
+    await actualizar(payload);
+    toast({
+      title: "Empleado actualizado",
+      description: `"${payload.nombre}" fue modificado correctamente.`,
+      variant: "success",
+    });
   }
   async function handleEliminar(id) {
-    const item = empleados.find((e) => e.id === id)
-    await eliminar(id)
-    toast({ title: 'Empleado eliminado', description: `"${item?.nombre}" fue eliminado.`, variant: 'error' })
+    const item = empleados.find((e) => e.id === id);
+    await eliminar(id);
+    toast({
+      title: "Empleado eliminado",
+      description: `"${item?.nombre}" fue eliminado.`,
+      variant: "error",
+    });
   }
 
   return (
     <div className="flex flex-col min-h-screen">
-
       {/* ── Body ── */}
       <div className="flex flex-col gap-6 px-8 pt-4 pb-8">
-
         {/* ── Título + breadcrumbs ── */}
         <div className="flex flex-col gap-1 pt-10">
           <h1 className="m-0 text-3xl font-bold text-grey-700">Empleados</h1>
@@ -456,12 +498,10 @@ function EmpleadosPage() {
         {/* ── Tabla ── */}
         <div
           className="bg-white rounded-xl border border-grey-200 overflow-hidden"
-          style={{ boxShadow: '0px 4px 16px 0px rgba(0,0,0,0.04)' }}
+          style={{ boxShadow: "0px 4px 16px 0px rgba(0,0,0,0.04)" }}
         >
-
           {/* ── Toolbar ── */}
           <div className="flex items-center gap-3 px-5 py-4 border-b border-grey-200">
-
             {/* Buscador */}
             <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-xl border border-grey-200 bg-white focus-within:border-primary-400 transition-colors">
               <MagnifyingGlassIcon className="text-grey-300 shrink-0" />
@@ -485,15 +525,15 @@ function EmpleadosPage() {
               <Select.Portal>
                 <Select.Content
                   className="bg-white border border-grey-200 rounded-xl overflow-hidden z-50"
-                  style={{ boxShadow: '0px 4px 16px 0px rgba(0,0,0,0.08)' }}
+                  style={{ boxShadow: "0px 4px 16px 0px rgba(0,0,0,0.08)" }}
                   position="popper"
                   sideOffset={4}
                 >
                   <Select.Viewport className="p-1">
                     {[
-                      { value: 'todos',    label: 'Todos' },
-                      { value: 'ACTIVO',   label: 'Activo' },
-                      { value: 'INACTIVO', label: 'Inactivo' },
+                      { value: "todos", label: "Todos" },
+                      { value: "ACTIVO", label: "Activo" },
+                      { value: "INACTIVO", label: "Inactivo" },
                     ].map((opt) => (
                       <Select.Item
                         key={opt.value}
@@ -519,7 +559,7 @@ function EmpleadosPage() {
               trigger={
                 <button
                   className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-primary-400 rounded-xl hover:bg-primary-500 transition-colors cursor-pointer shrink-0"
-                  style={{ boxShadow: '0px 2px 8px 0px rgba(0,128,128,0.20)' }}
+                  style={{ boxShadow: "0px 2px 8px 0px rgba(0,128,128,0.20)" }}
                 >
                   <PlusIcon />
                   Nuevo Empleado
@@ -531,10 +571,19 @@ function EmpleadosPage() {
           {/* ── Cabecera de columnas ── */}
           <div
             className="grid items-center px-5 py-3 bg-grey-100 border-b border-grey-200"
-            style={{ gridTemplateColumns: '2fr 1.2fr 1fr 1fr 0.7fr' }}
+            style={{ gridTemplateColumns: "2fr 1.2fr 1fr 1fr 0.7fr" }}
           >
-            {['Empleado', 'Cédula', 'Salario Mensual', 'Estado', 'Acciones'].map((col) => (
-              <span key={col} className="text-xs font-semibold text-grey-400 uppercase tracking-wide">
+            {[
+              "Empleado",
+              "Cédula",
+              "Salario Mensual",
+              "Estado",
+              "Acciones",
+            ].map((col) => (
+              <span
+                key={col}
+                className="text-xs font-semibold text-grey-400 uppercase tracking-wide"
+              >
                 {col}
               </span>
             ))}
@@ -546,9 +595,9 @@ function EmpleadosPage() {
           ) : empleados.length === 0 ? (
             <div className="flex flex-col items-center gap-2 py-16 text-grey-400">
               <span className="text-sm font-medium">
-                {busqueda || filtroEstado !== 'todos'
-                  ? 'No se encontraron empleados con esos filtros.'
-                  : 'No hay empleados registrados aún.'}
+                {busqueda || filtroEstado !== "todos"
+                  ? "No se encontraron empleados con esos filtros."
+                  : "No hay empleados registrados aún."}
               </span>
             </div>
           ) : (
@@ -556,14 +605,18 @@ function EmpleadosPage() {
               <div key={emp.id}>
                 <div
                   className="grid items-center px-5 py-3 hover:bg-grey-100 transition-colors"
-                  style={{ gridTemplateColumns: '2fr 1.2fr 1fr 1fr 0.7fr' }}
+                  style={{ gridTemplateColumns: "2fr 1.2fr 1fr 1fr 0.7fr" }}
                 >
                   {/* Empleado: avatar + nombre + puesto */}
                   <div className="flex items-center gap-3">
                     <Avatar nombre={emp.nombre} />
                     <div className="flex flex-col">
-                      <span className="text-sm font-semibold text-grey-700">{emp.nombre}</span>
-                      <span className="text-xs text-grey-400">{emp.puesto ?? emp.departamento ?? '—'}</span>
+                      <span className="text-sm font-semibold text-grey-700">
+                        {emp.nombre}
+                      </span>
+                      <span className="text-xs text-grey-400">
+                        {emp.puesto ?? emp.departamento ?? "—"}
+                      </span>
                     </div>
                   </div>
 
@@ -571,7 +624,9 @@ function EmpleadosPage() {
                   <span className="text-sm text-grey-500">{emp.cedula}</span>
 
                   {/* Salario */}
-                  <span className="text-sm font-semibold text-grey-700">{formatSalario(emp.salarioMensual)}</span>
+                  <span className="text-sm font-semibold text-grey-700">
+                    {formatSalario(emp.salarioMensual)}
+                  </span>
 
                   {/* Estado */}
                   <EstadoBadge estado={emp.estado} />
@@ -595,7 +650,10 @@ function EmpleadosPage() {
                           />
                         </Tooltip.Trigger>
                         <Tooltip.Portal>
-                          <Tooltip.Content className="bg-grey-700 text-white text-xs px-2 py-1 rounded" sideOffset={4}>
+                          <Tooltip.Content
+                            className="bg-grey-700 text-white text-xs px-2 py-1 rounded"
+                            sideOffset={4}
+                          >
                             Editar
                             <Tooltip.Arrow className="fill-grey-700" />
                           </Tooltip.Content>
@@ -614,7 +672,10 @@ function EmpleadosPage() {
                           </span>
                         </Tooltip.Trigger>
                         <Tooltip.Portal>
-                          <Tooltip.Content className="bg-grey-700 text-white text-xs px-2 py-1 rounded" sideOffset={4}>
+                          <Tooltip.Content
+                            className="bg-grey-700 text-white text-xs px-2 py-1 rounded"
+                            sideOffset={4}
+                          >
                             Eliminar
                             <Tooltip.Arrow className="fill-grey-700" />
                           </Tooltip.Content>
@@ -634,16 +695,21 @@ function EmpleadosPage() {
           {/* ── Footer: paginación ── */}
           <div className="flex items-center justify-between px-5 py-4 border-t border-grey-200">
             <span className="text-xs text-grey-400">
-              {totalEmpleados === 0
-                ? 'Sin resultados'
-                : <>
-                    Mostrando{' '}
-                    <span className="font-semibold text-grey-700">{rangoDesde}–{rangoHasta}</span>
-                    {' '}de{' '}
-                    <span className="font-semibold text-grey-700">{totalEmpleados}</span>
-                    {' '}empleados
-                  </>
-              }
+              {totalEmpleados === 0 ? (
+                "Sin resultados"
+              ) : (
+                <>
+                  Mostrando{" "}
+                  <span className="font-semibold text-grey-700">
+                    {rangoDesde}–{rangoHasta}
+                  </span>{" "}
+                  de{" "}
+                  <span className="font-semibold text-grey-700">
+                    {totalEmpleados}
+                  </span>{" "}
+                  empleados
+                </>
+              )}
             </span>
             <div className="flex items-center gap-1">
               <button
@@ -653,19 +719,21 @@ function EmpleadosPage() {
               >
                 <ChevronLeftIcon />
               </button>
-              {Array.from({ length: totalPaginas }, (_, i) => i + 1).map((p) => (
-                <button
-                  key={p}
-                  onClick={() => setPagina(p)}
-                  className={`flex items-center justify-center w-8 h-8 rounded-lg text-sm font-semibold transition-colors cursor-pointer ${
-                    p === pagina
-                      ? 'bg-primary-400 text-white'
-                      : 'border border-grey-200 text-grey-500 hover:bg-grey-100'
-                  }`}
-                >
-                  {p}
-                </button>
-              ))}
+              {Array.from({ length: totalPaginas }, (_, i) => i + 1).map(
+                (p) => (
+                  <button
+                    key={p}
+                    onClick={() => setPagina(p)}
+                    className={`flex items-center justify-center w-8 h-8 rounded-lg text-sm font-semibold transition-colors cursor-pointer ${
+                      p === pagina
+                        ? "bg-primary-400 text-white"
+                        : "border border-grey-200 text-grey-500 hover:bg-grey-100"
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ),
+              )}
               <button
                 onClick={() => setPagina(Math.min(totalPaginas, pagina + 1))}
                 disabled={pagina === totalPaginas}
@@ -696,10 +764,9 @@ function EmpleadosPage() {
             Exportar en XLS
           </button>
         </div>
-
       </div>
     </div>
-  )
+  );
 }
 
-export default EmpleadosPage
+export default EmpleadosPage;

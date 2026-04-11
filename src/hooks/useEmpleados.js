@@ -54,7 +54,7 @@ export function useEmpleados() {
     setLoading(true)
     setError(null)
     try {
-      const data = await empleadosService.getAll()
+      const data = await empleadosService.getAllLessTodos()
       setTodos(data)
     } catch (e) {
       setError(e.response?.data?.message ?? 'Error al cargar los empleados')
