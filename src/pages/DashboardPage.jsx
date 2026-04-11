@@ -5,7 +5,6 @@ import {
   PersonIcon,
   FileTextIcon,
   ArrowRightIcon,
-  UpdateIcon,
   CheckCircledIcon,
 } from '@radix-ui/react-icons'
 import { useDashboard } from '../hooks/useDashboard.js'
@@ -38,6 +37,12 @@ function DashboardPage() {
   const navigate = useNavigate()
   const { data, loading, error } = useDashboard()
   const [exportando, setExportando] = useState(false)
+
+  const fechaSincronizacion = new Date().toLocaleDateString('es-DO', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  })
 
   const handleGenerarInforme = async () => {
     if (data.empleados.length === 0) return
@@ -166,28 +171,24 @@ function DashboardPage() {
             className="w-96 bg-white rounded-xl border border-grey-200 p-6 flex flex-col gap-4"
             style={{ boxShadow: '0px 4px 16px 0px rgba(0,0,0,0.04)' }}
           >
-            <h2 className="text-lg font-bold text-grey-700">Sincronizar Contabilidad</h2>
+            <h2 className="text-lg font-bold text-grey-700">Modulo de Contabilidad</h2>
 
-            <div className="flex flex-col gap-2 flex-1">
-              <div className="flex items-center gap-2">
+            <div className="flex flex-col gap-3 flex-1">
+              <div className="flex items-center justify-between gap-2">
                 <span className="text-sm text-grey-400">Última sincronización:</span>
-                <span className="text-sm font-medium text-grey-700">Pendiente</span>
+                <span className="text-sm font-semibold text-grey-700">{fechaSincronizacion}</span>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center justify-between gap-2">
                 <span className="text-sm text-grey-400">Estado:</span>
-                <span className="text-sm font-medium text-grey-400">Módulo no disponible</span>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary-100 text-primary-500 text-xs font-semibold">
+                  <CheckCircledIcon className="w-4 h-4" />
+                  Conectado
+                </span>
               </div>
+              <p className="text-xs text-grey-400">
+                Integración activa de forma permanente. No requiere envío manual.
+              </p>
             </div>
-
-            {/* Botón Enviar WS */}
-            <button
-              disabled
-              className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg bg-primary-400 text-white text-sm font-medium transition-colors opacity-50 cursor-not-allowed"
-              style={{ boxShadow: '0px 2px 8px 0px rgba(0,128,128,0.20)' }}
-            >
-              <UpdateIcon />
-              Enviar WS
-            </button>
           </div>
         </div>
 
