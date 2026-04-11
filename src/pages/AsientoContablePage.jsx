@@ -2,7 +2,6 @@ import { useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import * as Select from "@radix-ui/react-select";
 import * as Separator from "@radix-ui/react-separator";
-import * as Tooltip from "@radix-ui/react-tooltip";
 import {
   PlusIcon,
   MagnifyingGlassIcon,
@@ -15,54 +14,6 @@ import {
 } from "@radix-ui/react-icons";
 import { useAsientoContable } from "../hooks/useAsientosContables.js";
 import { useToast } from "../hooks/useToast.jsx";
-
-// ──────────────────────────────────────────────────────────────────
-// Funciones de exportación (lazy loading)
-// ──────────────────────────────────────────────────────────────────
-async function exportarPDF(asientos) {
-  const { default: jsPDF } = await import("jspdf");
-  const { default: autoTable } = await import("jspdf-autotable");
-  const doc = new jsPDF();
-  doc.text("Listado de Asientos Contables", 14, 16);
-  autoTable(doc, {
-    startY: 22,
-    head: [
-      [
-        "ID",
-        "Descripción",
-        "Moneda",
-        "Fecha Inicio",
-        "Fecha Fin",
-        "Monto Total",
-      ],
-    ],
-    body: asientos.map((a) => [
-      a.id,
-      a.descripcion,
-      a.moneda?.nombre || "—",
-      new Date(a.fechaInicio).toLocaleDateString("es-DO"),
-      new Date(a.fechaFin).toLocaleDateString("es-DO"),
-      formatMoney(a.montoTotal),
-    ]),
-  });
-  doc.save("asientos_contables.pdf");
-}
-
-async function exportarXLSX(asientos) {
-  const XLSX = await import("xlsx");
-  const data = asientos.map((a) => ({
-    ID: a.id,
-    Descripción: a.descripcion,
-    Moneda: a.moneda?.nombre || "—",
-    "Fecha Inicio": new Date(a.fechaInicio).toLocaleDateString("es-DO"),
-    "Fecha Fin": new Date(a.fechaFin).toLocaleDateString("es-DO"),
-    "Monto Total": a.montoTotal,
-  }));
-  const ws = XLSX.utils.json_to_sheet(data);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Asientos");
-  XLSX.writeFile(wb, "asientos_contables.xlsx");
-}
 
 // ──────────────────────────────────────────────────────────────────
 // Helpers
@@ -467,7 +418,7 @@ export default function AsientoContablePage() {
     a.descripcion?.toLowerCase().includes(busqueda.toLowerCase()),
   );
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     if (filtrados.length === 0) {
       toast({
         title: "No hay datos",
@@ -476,16 +427,22 @@ export default function AsientoContablePage() {
       });
       return;
     }
-    exportarPDF(filtrados).catch((err) =>
+    try {
+      const { exportarAsientosPDF } = await import("../lib/exportar.js");
+      const busquedaTexto = busqueda.trim() ? busqueda.trim() : "(sin búsqueda)";
+      exportarAsientosPDF(filtrados, {
+        subtitulo: `Filtros: Búsqueda ${busquedaTexto} | Total registros: ${filtrados.length}`,
+      });
+    } catch (err) {
       toast({
         title: "Error al exportar PDF",
         description: err.message,
         variant: "error",
-      }),
-    );
+      });
+    }
   };
 
-  const handleExportXLSX = () => {
+  const handleExportXLSX = async () => {
     if (filtrados.length === 0) {
       toast({
         title: "No hay datos",
@@ -494,13 +451,16 @@ export default function AsientoContablePage() {
       });
       return;
     }
-    exportarXLSX(filtrados).catch((err) =>
+    try {
+      const { exportarAsientosXLSX } = await import("../lib/exportar.js");
+      exportarAsientosXLSX(filtrados);
+    } catch (err) {
       toast({
         title: "Error al exportar XLSX",
         description: err.message,
         variant: "error",
-      }),
-    );
+      });
+    }
   };
 
   return (
@@ -508,8 +468,8 @@ export default function AsientoContablePage() {
       <div>
         <h1 className="text-3xl font-bold text-grey-700">Asientos Contables</h1>
         <nav className="flex items-center gap-1 text-sm text-grey-400">
-          <span>Contabilidad</span> /{" "}
-          <span className="font-medium text-grey-700">Historial</span>
+          <span>Dashboard</span> /{" "}
+          <span className="font-medium text-grey-700">Asientos Contables</span>
         </nav>
       </div>
 
@@ -521,8 +481,8 @@ export default function AsientoContablePage() {
 
       <div className="bg-white rounded-xl border border-grey-200 shadow-sm overflow-hidden">
         {/* Toolbar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-grey-200">
-          <div className="flex-1 flex items-center gap-2 px-3 py-2 max-w-md rounded-xl border border-grey-200 focus-within:border-primary-400 transition-colors">
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-grey-200">
+          <div className="flex-1 flex items-center gap-2 px-3 py-2 rounded-xl border border-grey-200 focus-within:border-primary-400 transition-colors">
             <MagnifyingGlassIcon className="text-grey-300" />
             <input
               placeholder="Buscar por descripción..."
@@ -531,54 +491,12 @@ export default function AsientoContablePage() {
               onChange={(e) => setBusqueda(e.target.value)}
             />
           </div>
-          <div className="flex items-center gap-2">
-            <Tooltip.Provider>
-              <Tooltip.Root>
-                <Tooltip.Trigger asChild>
-                  <button
-                    onClick={handleExportPDF}
-                    disabled={loading || filtrados.length === 0}
-                    className="p-2 rounded-lg border border-grey-200 hover:bg-grey-100 disabled:opacity-40"
-                  >
-                    <FileTextIcon className="w-4 h-4" />
-                  </button>
-                </Tooltip.Trigger>
-                <Tooltip.Portal>
-                  <Tooltip.Content
-                    sideOffset={4}
-                    className="bg-grey-700 text-white text-xs px-2 py-1 rounded"
-                  >
-                    Exportar PDF
-                  </Tooltip.Content>
-                </Tooltip.Portal>
-              </Tooltip.Root>
-              <Tooltip.Root>
-                <Tooltip.Trigger asChild>
-                  <button
-                    onClick={handleExportXLSX}
-                    disabled={loading || filtrados.length === 0}
-                    className="p-2 rounded-lg border border-grey-200 hover:bg-grey-100 disabled:opacity-40"
-                  >
-                    <DownloadIcon className="w-4 h-4 text-primary-500" />
-                  </button>
-                </Tooltip.Trigger>
-                <Tooltip.Portal>
-                  <Tooltip.Content
-                    sideOffset={4}
-                    className="bg-grey-700 text-white text-xs px-2 py-1 rounded"
-                  >
-                    Exportar XLSX
-                  </Tooltip.Content>
-                </Tooltip.Portal>
-              </Tooltip.Root>
-            </Tooltip.Provider>
-            <NuevoAsientoDialog
-              monedas={monedas}
-              onGuardar={crearAsiento}
-              saving={saving}
-              toast={toast}
-            />
-          </div>
+          <NuevoAsientoDialog
+            monedas={monedas}
+            onGuardar={crearAsiento}
+            saving={saving}
+            toast={toast}
+          />
         </div>
 
         {/* Tabla header */}
@@ -632,6 +550,26 @@ export default function AsientoContablePage() {
             ))
           )}
         </div>
+      </div>
+
+      {/* ── Exportar ── */}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={handleExportPDF}
+          disabled={loading || filtrados.length === 0}
+          className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-grey-600 rounded-xl border border-grey-200 hover:bg-grey-100 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <FileTextIcon className="text-grey-500" />
+          Exportar en PDF
+        </button>
+        <button
+          onClick={handleExportXLSX}
+          disabled={loading || filtrados.length === 0}
+          className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-primary-500 rounded-xl border border-primary-300 hover:bg-primary-100 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          <DownloadIcon className="text-primary-400" />
+          Exportar en XLS
+        </button>
       </div>
     </div>
   );
