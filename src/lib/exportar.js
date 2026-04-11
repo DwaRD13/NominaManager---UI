@@ -221,7 +221,6 @@ export function exportarAsientosPDF(
   const columnas = [
     { header: "ID", dataKey: "id" },
     { header: "Descripción", dataKey: "descripcion" },
-    { header: "Moneda", dataKey: "moneda" },
     { header: "Fecha Asiento", dataKey: "fechaAsiento" },
     { header: "Monto Total", dataKey: "montoTotal" },
   ];
@@ -229,7 +228,6 @@ export function exportarAsientosPDF(
   const filas = asientos.map((a) => ({
     id: a.id ?? "—",
     descripcion: a.descripcion ?? "—",
-    moneda: a.moneda?.nombre ?? "—",
     fechaAsiento: formatFecha(a.fechaAsiento ?? a.fechaInicio ?? a.fechaFin),
     montoTotal: formatSalarioExport(a.montoTotal ?? 0),
   }));
@@ -296,7 +294,6 @@ export function exportarAsientosXLSX(
   const filas = asientos.map((a) => ({
     ID: a.id ?? "",
     Descripción: a.descripcion ?? "",
-    Moneda: a.moneda?.nombre ?? "",
     "Fecha Asiento": formatFecha(a.fechaAsiento ?? a.fechaInicio ?? a.fechaFin),
     "Monto Total": a.montoTotal ?? 0,
   }));
@@ -304,8 +301,7 @@ export function exportarAsientosXLSX(
   const ws = utils.json_to_sheet(filas);
   ws["!cols"] = [
     { wch: 10 },
-    { wch: 40 },
-    { wch: 18 },
+    { wch: 48 },
     { wch: 16 },
     { wch: 16 },
   ];
