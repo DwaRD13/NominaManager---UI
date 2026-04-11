@@ -17,54 +17,6 @@ import { useAsientoContable } from "../hooks/useAsientosContables.js";
 import { useToast } from "../hooks/useToast.jsx";
 
 // ──────────────────────────────────────────────────────────────────
-// Funciones de exportación (lazy loading)
-// ──────────────────────────────────────────────────────────────────
-async function exportarPDF(asientos) {
-  const { default: jsPDF } = await import("jspdf");
-  const { default: autoTable } = await import("jspdf-autotable");
-  const doc = new jsPDF();
-  doc.text("Listado de Asientos Contables", 14, 16);
-  autoTable(doc, {
-    startY: 22,
-    head: [
-      [
-        "ID",
-        "Descripción",
-        "Moneda",
-        "Fecha Inicio",
-        "Fecha Fin",
-        "Monto Total",
-      ],
-    ],
-    body: asientos.map((a) => [
-      a.id,
-      a.descripcion,
-      a.moneda?.nombre || "—",
-      new Date(a.fechaInicio).toLocaleDateString("es-DO"),
-      new Date(a.fechaFin).toLocaleDateString("es-DO"),
-      formatMoney(a.montoTotal),
-    ]),
-  });
-  doc.save("asientos_contables.pdf");
-}
-
-async function exportarXLSX(asientos) {
-  const XLSX = await import("xlsx");
-  const data = asientos.map((a) => ({
-    ID: a.id,
-    Descripción: a.descripcion,
-    Moneda: a.moneda?.nombre || "—",
-    "Fecha Inicio": new Date(a.fechaInicio).toLocaleDateString("es-DO"),
-    "Fecha Fin": new Date(a.fechaFin).toLocaleDateString("es-DO"),
-    "Monto Total": a.montoTotal,
-  }));
-  const ws = XLSX.utils.json_to_sheet(data);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Asientos");
-  XLSX.writeFile(wb, "asientos_contables.xlsx");
-}
-
-// ──────────────────────────────────────────────────────────────────
 // Helpers
 // ──────────────────────────────────────────────────────────────────
 const formatMoney = (val) =>
@@ -467,7 +419,7 @@ export default function AsientoContablePage() {
     a.descripcion?.toLowerCase().includes(busqueda.toLowerCase()),
   );
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     if (filtrados.length === 0) {
       toast({
         title: "No hay datos",
@@ -476,16 +428,22 @@ export default function AsientoContablePage() {
       });
       return;
     }
-    exportarPDF(filtrados).catch((err) =>
+    try {
+      const { exportarAsientosPDF } = await import("../lib/exportar.js");
+      const busquedaTexto = busqueda.trim() ? busqueda.trim() : "(sin búsqueda)";
+      exportarAsientosPDF(filtrados, {
+        subtitulo: `Filtros: Búsqueda ${busquedaTexto} | Total registros: ${filtrados.length}`,
+      });
+    } catch (err) {
       toast({
         title: "Error al exportar PDF",
         description: err.message,
         variant: "error",
-      }),
-    );
+      });
+    }
   };
 
-  const handleExportXLSX = () => {
+  const handleExportXLSX = async () => {
     if (filtrados.length === 0) {
       toast({
         title: "No hay datos",
@@ -494,13 +452,16 @@ export default function AsientoContablePage() {
       });
       return;
     }
-    exportarXLSX(filtrados).catch((err) =>
+    try {
+      const { exportarAsientosXLSX } = await import("../lib/exportar.js");
+      exportarAsientosXLSX(filtrados);
+    } catch (err) {
       toast({
         title: "Error al exportar XLSX",
         description: err.message,
         variant: "error",
-      }),
-    );
+      });
+    }
   };
 
   return (
@@ -508,8 +469,8 @@ export default function AsientoContablePage() {
       <div>
         <h1 className="text-3xl font-bold text-grey-700">Asientos Contables</h1>
         <nav className="flex items-center gap-1 text-sm text-grey-400">
-          <span>Contabilidad</span> /{" "}
-          <span className="font-medium text-grey-700">Historial</span>
+          <span>Dashboard</span> /{" "}
+          <span className="font-medium text-grey-700">Asientos Contables</span>
         </nav>
       </div>
 

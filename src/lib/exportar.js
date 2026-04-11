@@ -186,6 +186,137 @@ export function exportarEmpleadosXLSX(
 }
 
 /**
+ * Exporta la lista de asientos contables a un archivo PDF.
+ * @param {Array} asientos
+ * @param {{ titulo?: string, subtitulo?: string }} opciones
+ */
+export function exportarAsientosPDF(
+  asientos,
+  { titulo = "Listado de Asientos Contables", subtitulo = "" } = {},
+) {
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+
+  const fechaGeneracion = new Date().toLocaleDateString("es-DO", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+
+  doc.setFillColor(...COLOR_PRIMARY);
+  doc.rect(0, 0, 210, 24, "F");
+
+  doc.setTextColor(...COLOR_WHITE);
+  doc.setFontSize(14);
+  doc.setFont("helvetica", "bold");
+  doc.text(titulo, 14, 10);
+
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "normal");
+  doc.text(`Sistema de Nóminas — Generado el ${fechaGeneracion}`, 14, 16);
+
+  if (subtitulo) {
+    doc.text(subtitulo, 14, 21);
+  }
+
+  const columnas = [
+    { header: "ID", dataKey: "id" },
+    { header: "Descripción", dataKey: "descripcion" },
+    { header: "Moneda", dataKey: "moneda" },
+    { header: "Fecha Asiento", dataKey: "fechaAsiento" },
+    { header: "Monto Total", dataKey: "montoTotal" },
+  ];
+
+  const filas = asientos.map((a) => ({
+    id: a.id ?? "—",
+    descripcion: a.descripcion ?? "—",
+    moneda: a.moneda?.nombre ?? "—",
+    fechaAsiento: formatFecha(a.fechaAsiento ?? a.fechaInicio ?? a.fechaFin),
+    montoTotal: formatSalarioExport(a.montoTotal ?? 0),
+  }));
+
+  autoTable(doc, {
+    columns: columnas,
+    body: filas,
+    startY: subtitulo ? 26 : 24,
+    theme: "grid",
+    styles: {
+      font: "helvetica",
+      fontSize: 8,
+      cellPadding: 3,
+      valign: "middle",
+      textColor: COLOR_GREY_700,
+    },
+    headStyles: {
+      fillColor: COLOR_GREY_700,
+      textColor: COLOR_WHITE,
+      fontStyle: "bold",
+      fontSize: 8,
+      halign: "left",
+    },
+    alternateRowStyles: {
+      fillColor: COLOR_GREY_100,
+    },
+    columnStyles: {
+      id: { halign: "center", cellWidth: 18 },
+      fechaAsiento: { halign: "center", cellWidth: 30 },
+      montoTotal: { halign: "right", fontStyle: "bold", cellWidth: 30 },
+    },
+  });
+
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(7);
+    doc.setTextColor(...COLOR_GREY_400);
+    doc.text(
+      `Página ${i} de ${pageCount}  —  Total asientos: ${asientos.length}`,
+      14,
+      doc.internal.pageSize.height - 8,
+    );
+  }
+
+  doc.save(`asientos_contables_${fechaGeneracion.replace(/\//g, "-")}.pdf`);
+}
+
+/**
+ * Exporta la lista de asientos contables a un archivo XLSX.
+ * @param {Array} asientos
+ * @param {{ nombreArchivo?: string }} opciones
+ */
+export function exportarAsientosXLSX(
+  asientos,
+  { nombreArchivo = "asientos_contables" } = {},
+) {
+  const fechaGeneracion = new Date().toLocaleDateString("es-DO", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+
+  const filas = asientos.map((a) => ({
+    ID: a.id ?? "",
+    Descripción: a.descripcion ?? "",
+    Moneda: a.moneda?.nombre ?? "",
+    "Fecha Asiento": formatFecha(a.fechaAsiento ?? a.fechaInicio ?? a.fechaFin),
+    "Monto Total": a.montoTotal ?? 0,
+  }));
+
+  const ws = utils.json_to_sheet(filas);
+  ws["!cols"] = [
+    { wch: 10 },
+    { wch: 40 },
+    { wch: 18 },
+    { wch: 16 },
+    { wch: 16 },
+  ];
+
+  const wb = utils.book_new();
+  utils.book_append_sheet(wb, ws, "Asientos");
+
+  writeFile(wb, `${nombreArchivo}_${fechaGeneracion.replace(/\//g, "-")}.xlsx`);
+}
+
+/**
  * Exporta la lista de Tipos de Ingresos y Deducciones a un archivo PDF.
  * @param {Array} ingresos
  * @param {Array} deducciones
