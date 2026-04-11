@@ -44,6 +44,11 @@ const NAV_ITEMS = [
     path: "/consultas",
     icon: <FileTextIcon width={20} height={20} />,
   },
+  {
+    label: "Asientos",
+    path: "/asientos-contables",
+    icon: <FileTextIcon width={20} height={20} />,
+  },
 ];
 
 function Sidebar({ collapsed, onToggle }) {
