@@ -481,6 +481,300 @@ export function exportarConsultasPDF(resultados, empleados, filtros) {
 }
 
 /**
+ * Exporta el reporte de Consultas Especiales a un archivo XLSX.
+ * @param {Array} resultados
+ * @param {Array} empleados
+ * @param {Object} filtros
+ * @param {{ nombreArchivo?: string }} opciones
+ */
+export function exportarConsultasXLSX(
+  resultados,
+  empleados,
+  filtros,
+  { nombreArchivo = "consultas_especiales" } = {},
+) {
+  const fechaGeneracion = new Date().toLocaleDateString("es-DO", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+
+  const getEmpleadoNombre = (id) =>
+    empleados.find((e) => e.id === Number(id))?.nombre || `ID: ${id}`;
+
+  const empFiltro = filtros.empleadoId
+    ? empleados.find((e) => e.id === Number(filtros.empleadoId))?.nombre
+    : "Todos los colaboradores";
+
+  const tipoFiltro =
+    filtros.tipoTransaccion === "TODOS"
+      ? "Ingresos y Deducciones"
+      : filtros.tipoTransaccion === "INGRESO"
+        ? "Solo Ingresos"
+        : "Solo Deducciones";
+
+  const fechasRango =
+    filtros.fechaInicio && filtros.fechaFin
+      ? `${formatFecha(filtros.fechaInicio)} al ${formatFecha(filtros.fechaFin)}`
+      : "Histórico Completo";
+
+  let totalIngresos = 0;
+  let totalDeducciones = 0;
+
+  const filas = resultados.map((r) => {
+    const esIngreso = r.tipoTransaccion === "INGRESO";
+    if (esIngreso) totalIngresos += r.monto || 0;
+    else totalDeducciones += r.monto || 0;
+
+    return {
+      Fecha: formatFecha(r.fecha),
+      Colaborador: getEmpleadoNombre(r.empleadoId),
+      Tipo: esIngreso ? "INGRESO" : "DEDUCCIÓN",
+      Concepto: r.tipoNombre ?? "—",
+      Monto: esIngreso ? r.monto || 0 : -(r.monto || 0),
+      Estado: "Activo",
+    };
+  });
+
+  const ws = utils.json_to_sheet(filas);
+  ws["!cols"] = [
+    { wch: 14 }, // Fecha
+    { wch: 30 }, // Colaborador
+    { wch: 14 }, // Tipo
+    { wch: 34 }, // Concepto
+    { wch: 16 }, // Monto
+    { wch: 12 }, // Estado
+  ];
+
+  const resumen = [
+    { Campo: "Filtro colaborador", Valor: empFiltro ?? "—" },
+    { Campo: "Filtro tipo", Valor: tipoFiltro },
+    { Campo: "Rango de fechas", Valor: fechasRango },
+    { Campo: "Total registros", Valor: resultados.length },
+    { Campo: "Total ingresos", Valor: totalIngresos },
+    { Campo: "Total deducciones", Valor: totalDeducciones },
+    { Campo: "Balance neto", Valor: totalIngresos - totalDeducciones },
+    { Campo: "Generado el", Valor: fechaGeneracion },
+  ];
+
+  const wsResumen = utils.json_to_sheet(resumen);
+  wsResumen["!cols"] = [
+    { wch: 24 }, // Campo
+    { wch: 48 }, // Valor
+  ];
+
+  const wb = utils.book_new();
+  utils.book_append_sheet(wb, ws, "Consultas");
+  utils.book_append_sheet(wb, wsResumen, "Resumen");
+
+  writeFile(wb, `${nombreArchivo}_${fechaGeneracion.replace(/\//g, "-")}.xlsx`);
+}
+
+/**
+ * Exporta la lista de transacciones a un archivo PDF.
+ * @param {Array} transacciones
+ * @param {{ busqueda?: string, filtroTipo?: string, titulo?: string }} opciones
+ */
+export function exportarTransaccionesPDF(
+  transacciones,
+  { busqueda = "", filtroTipo = "todos", titulo = "Reporte de Transacciones" } = {},
+) {
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+
+  const fechaGeneracion = new Date().toLocaleDateString("es-DO", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+
+  doc.setFillColor(...COLOR_PRIMARY);
+  doc.rect(0, 0, 210, 24, "F");
+
+  doc.setTextColor(...COLOR_WHITE);
+  doc.setFontSize(14);
+  doc.setFont("helvetica", "bold");
+  doc.text(titulo, 14, 10);
+
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "normal");
+  doc.text(`Sistema de Nóminas — Generado el ${fechaGeneracion}`, 14, 16);
+
+  const tipoFiltro =
+    filtroTipo === "todos"
+      ? "Todas"
+      : filtroTipo === "INGRESO"
+        ? "Ingresos"
+        : "Deducciones";
+
+  const busquedaTexto = busqueda?.trim() ? busqueda.trim() : "(sin búsqueda)";
+  doc.text(`Filtros: Tipo ${tipoFiltro} | Búsqueda: ${busquedaTexto}`, 14, 21);
+
+  let totalIngresos = 0;
+  let totalDeducciones = 0;
+
+  const columnas = [
+    { header: "Fecha", dataKey: "fecha" },
+    { header: "Tipo", dataKey: "tipo" },
+    { header: "Empleado", dataKey: "empleado" },
+    { header: "Concepto", dataKey: "concepto" },
+    { header: "Monto", dataKey: "monto" },
+  ];
+
+  const filas = transacciones.map((t) => {
+    const esIngreso = t.estado?.toUpperCase() === "INGRESO";
+    const montoValor = Number(t.monto || 0);
+
+    if (esIngreso) totalIngresos += montoValor;
+    else totalDeducciones += montoValor;
+
+    return {
+      fecha: formatFecha(t.fecha),
+      tipo: t.estado ?? "—",
+      empleado: t.nombreEmpleado ?? "—",
+      concepto: t.tipo ?? "—",
+      monto: `${esIngreso ? "+" : "-"}${formatSalarioExport(montoValor)}`,
+    };
+  });
+
+  autoTable(doc, {
+    columns: columnas,
+    body: filas,
+    startY: 28,
+    theme: "grid",
+    styles: {
+      font: "helvetica",
+      fontSize: 8,
+      cellPadding: 3,
+      valign: "middle",
+      textColor: COLOR_GREY_700,
+    },
+    headStyles: {
+      fillColor: COLOR_GREY_700,
+      textColor: COLOR_WHITE,
+      fontStyle: "bold",
+      fontSize: 8,
+      halign: "left",
+    },
+    alternateRowStyles: {
+      fillColor: COLOR_GREY_100,
+    },
+    columnStyles: {
+      monto: { halign: "right", fontStyle: "bold" },
+      tipo: { halign: "center" },
+    },
+    didParseCell: function (data) {
+      if (data.section === "body" && data.column.dataKey === "monto") {
+        if (String(data.cell.raw).startsWith("+")) {
+          data.cell.styles.textColor = [5, 150, 105];
+        } else if (String(data.cell.raw).startsWith("-")) {
+          data.cell.styles.textColor = [220, 38, 38];
+        }
+      }
+    },
+  });
+
+  const finalY = (doc.lastAutoTable?.finalY || 28) + 8;
+  const balance = totalIngresos - totalDeducciones;
+
+  doc.setTextColor(...COLOR_GREY_700);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.text("Resumen", 14, finalY);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.text(`Total ingresos: ${formatSalarioExport(totalIngresos)}`, 14, finalY + 6);
+  doc.text(`Total deducciones: ${formatSalarioExport(totalDeducciones)}`, 14, finalY + 12);
+
+  doc.setFont("helvetica", "bold");
+  doc.text(
+    `Balance neto: ${balance >= 0 ? "+" : ""}${formatSalarioExport(balance)}`,
+    14,
+    finalY + 18,
+  );
+
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(7);
+    doc.setTextColor(...COLOR_GREY_400);
+    doc.text(
+      `Página ${i} de ${pageCount}  —  Total transacciones: ${transacciones.length}`,
+      14,
+      doc.internal.pageSize.height - 8,
+    );
+  }
+
+  doc.save(`transacciones_${fechaGeneracion.replace(/\//g, "-")}.pdf`);
+}
+
+/**
+ * Exporta la lista de transacciones a un archivo XLSX.
+ * @param {Array} transacciones
+ * @param {{ busqueda?: string, filtroTipo?: string, nombreArchivo?: string }} opciones
+ */
+export function exportarTransaccionesXLSX(
+  transacciones,
+  { busqueda = "", filtroTipo = "todos", nombreArchivo = "transacciones" } = {},
+) {
+  const fechaGeneracion = new Date().toLocaleDateString("es-DO", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+
+  const filas = transacciones.map((t) => {
+    const esIngreso = t.estado?.toUpperCase() === "INGRESO";
+    const montoValor = Number(t.monto || 0);
+
+    return {
+      Fecha: formatFecha(t.fecha),
+      Tipo: t.estado ?? "",
+      Empleado: t.nombreEmpleado ?? "",
+      Concepto: t.tipo ?? "",
+      Monto: esIngreso ? montoValor : -montoValor,
+      "Depende de salario": t.dependeDeSalario ? "Sí" : "No",
+    };
+  });
+
+  const ws = utils.json_to_sheet(filas);
+  ws["!cols"] = [
+    { wch: 14 }, // Fecha
+    { wch: 14 }, // Tipo
+    { wch: 28 }, // Empleado
+    { wch: 30 }, // Concepto
+    { wch: 16 }, // Monto
+    { wch: 20 }, // Depende de salario
+  ];
+
+  const tipoFiltro =
+    filtroTipo === "todos"
+      ? "Todas"
+      : filtroTipo === "INGRESO"
+        ? "Ingresos"
+        : "Deducciones";
+
+  const resumen = [
+    { Campo: "Filtro tipo", Valor: tipoFiltro },
+    { Campo: "Búsqueda", Valor: busqueda?.trim() || "(sin búsqueda)" },
+    { Campo: "Total transacciones", Valor: transacciones.length },
+    { Campo: "Generado el", Valor: fechaGeneracion },
+  ];
+
+  const wsResumen = utils.json_to_sheet(resumen);
+  wsResumen["!cols"] = [
+    { wch: 24 },
+    { wch: 42 },
+  ];
+
+  const wb = utils.book_new();
+  utils.book_append_sheet(wb, ws, "Transacciones");
+  utils.book_append_sheet(wb, wsResumen, "Resumen");
+
+  writeFile(wb, `${nombreArchivo}_${fechaGeneracion.replace(/\//g, "-")}.xlsx`);
+}
+
+/**
  * Exporta la lista de Tipos de Ingresos y Deducciones a un archivo XLSX.
  * @param {Array} ingresos
  * @param {Array} deducciones

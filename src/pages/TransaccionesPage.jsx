@@ -3,6 +3,8 @@ import { Dialog, Select, Separator, AlertDialog } from 'radix-ui'
 import {
   MagnifyingGlassIcon,
   PlusIcon,
+  FileTextIcon,
+  DownloadIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   ChevronDownIcon,
@@ -425,6 +427,7 @@ function TransaccionesPage() {
   
   const {
     transacciones,
+    transaccionesFiltradas,
     loading,
     error,
     busqueda,
@@ -445,6 +448,43 @@ function TransaccionesPage() {
     actualizar,
     eliminar,
   } = useTransacciones()
+
+  // ── Exportación ──
+  async function handleExportarPDF() {
+    if (transaccionesFiltradas.length === 0) {
+      window.alert('No hay datos para exportar.')
+      return
+    }
+
+    try {
+      const { exportarTransaccionesPDF } = await import('../lib/exportar.js')
+      exportarTransaccionesPDF(transaccionesFiltradas, {
+        busqueda,
+        filtroTipo,
+      })
+    } catch (e) {
+      console.error(e)
+      window.alert('Ocurrió un error exportando el PDF.')
+    }
+  }
+
+  async function handleExportarXLSX() {
+    if (transaccionesFiltradas.length === 0) {
+      window.alert('No hay datos para exportar.')
+      return
+    }
+
+    try {
+      const { exportarTransaccionesXLSX } = await import('../lib/exportar.js')
+      exportarTransaccionesXLSX(transaccionesFiltradas, {
+        busqueda,
+        filtroTipo,
+      })
+    } catch (e) {
+      console.error(e)
+      window.alert('Ocurrió un error exportando el XLSX.')
+    }
+  }
 
   // ── Estado para edición y eliminación ──
   const [transaccionEditando, setTransaccionEditando] = useState(null)
@@ -702,6 +742,27 @@ function TransaccionesPage() {
               </button>
             </div>
           </div>
+        </div>
+
+        {/* ── Exportar ── */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleExportarPDF}
+            disabled={loading || transaccionesFiltradas.length === 0}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-grey-600 rounded-xl border border-grey-200 hover:bg-grey-100 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <FileTextIcon className="text-grey-500" />
+            Exportar en PDF
+          </button>
+
+          <button
+            onClick={handleExportarXLSX}
+            disabled={loading || transaccionesFiltradas.length === 0}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-primary-500 rounded-xl border border-primary-300 hover:bg-primary-100 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <DownloadIcon className="text-primary-400" />
+            Exportar en XLS
+          </button>
         </div>
 
         {/* ── Dialog de edición ── */}
