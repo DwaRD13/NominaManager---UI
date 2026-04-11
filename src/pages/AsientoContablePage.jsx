@@ -286,6 +286,7 @@ function DetalleAsientoDialog({ asientoId, obtenerDetalle, toast, children }) {
       try {
         const data = await obtenerDetalle(asientoId);
         setDetalle(data);
+        console.log("Detalle obtenido:", data);
       } catch (err) {
         setErrorDetalle(err.message);
         toast({
@@ -311,7 +312,7 @@ function DetalleAsientoDialog({ asientoId, obtenerDetalle, toast, children }) {
         <Dialog.Overlay className="fixed inset-0 bg-black/40 z-40" />
         <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-white rounded-xl p-6 w-full max-w-3xl max-h-[85vh] overflow-y-auto shadow-2xl focus:outline-none">
           <Dialog.Title className="text-xl font-bold text-grey-700 mb-1">
-            Detalle del Asiento #{asientoId}
+            Detalle del Asiento {detalle?.descripcion}
           </Dialog.Title>
           <Dialog.Description className="text-sm text-grey-400 mb-4">
             Información completa del asiento y sus transacciones.
@@ -343,55 +344,58 @@ function DetalleAsientoDialog({ asientoId, obtenerDetalle, toast, children }) {
                 <span className="font-semibold text-grey-600">
                   Fecha del asiento:
                 </span>
-                <span>{formatDateLocal(detalle.fecha)}</span>
+                <span>{formatDateLocal(detalle.fechaAsiento)}</span>
                 <span className="font-semibold text-grey-600">
                   Monto total:
                 </span>
                 <span className="font-bold text-primary-600">
-                  {formatMoney(detalle.monto)}
+                  {formatMoney(detalle.montoTotal)}
                 </span>
                 <span className="font-semibold text-grey-600">Estado:</span>
                 <span>
-                  {detalle.estado === "1" ? "Activo" : detalle.estado || "—"}
+                  {detalle.estado === true
+                    ? "Activo"
+                    : "Inactivo" || detalle.estado}
                 </span>
               </div>
 
               {/* Si hay lista de transacciones (detalle.transacciones o similar) */}
-              {detalle.transacciones && detalle.transacciones.length > 0 && (
-                <>
-                  <h3 className="font-bold text-grey-700 mt-2">
-                    Transacciones
-                  </h3>
-                  <div className="border rounded-lg overflow-hidden">
-                    <table className="min-w-full text-xs">
-                      <thead className="bg-grey-100">
-                        <tr>
-                          <th className="px-3 py-2 text-left">Tipo</th>
-                          <th className="px-3 py-2 text-left">Empleado</th>
-                          <th className="px-3 py-2 text-right">Monto</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {detalle.transacciones.map((t, idx) => (
-                          <tr key={idx} className="border-t">
-                            <td className="px-3 py-2">
-                              {t.tipoTransaccion ||
-                                t.tipoDeIngreso?.nombre ||
-                                "—"}
-                            </td>
-                            <td className="px-3 py-2">
-                              {t.empleado?.nombre || "—"}
-                            </td>
-                            <td className="px-3 py-2 text-right">
-                              {formatMoney(t.monto)}
-                            </td>
+              {detalle.registroTransaccion &&
+                detalle.registroTransaccion.length > 0 && (
+                  <>
+                    <h3 className="font-bold text-grey-700 mt-2">
+                      Transacciones
+                    </h3>
+                    <div className="border rounded-lg overflow-hidden">
+                      <table className="min-w-full text-xs">
+                        <thead className="bg-grey-100">
+                          <tr>
+                            <th className="px-3 py-2 text-left">Tipo</th>
+                            <th className="px-3 py-2 text-left">Empleado</th>
+                            <th className="px-3 py-2 text-right">Monto</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </>
-              )}
+                        </thead>
+                        <tbody>
+                          {detalle.registroTransaccion.map((t, idx) => (
+                            <tr key={idx} className="border-t">
+                              <td className="px-3 py-2">
+                                {t.tipoTransaccion ||
+                                  t.tipoDeIngreso?.nombre ||
+                                  "—"}
+                              </td>
+                              <td className="px-3 py-2">
+                                {t.empleado?.nombre || "—"}
+                              </td>
+                              <td className="px-3 py-2 text-right">
+                                {formatMoney(t.monto)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                )}
 
               {/* Si el detalle tiene un solo objeto empleado o ingreso, mostrarlo */}
               {detalle.empleado && (

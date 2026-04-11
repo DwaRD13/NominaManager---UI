@@ -35,14 +35,14 @@ const NAV_ITEMS = [
     icon: <ArrowTopRightIcon width={20} height={20} />,
   },
   {
-    label: "Consultas",
-    path: "/consultas",
-    icon: <FileTextIcon width={20} height={20} />,
-  },
-  {
     label: "Asientos Contables",
     path: "/asientos-contables",
     icon: <ReaderIcon width={20} height={20} />,
+  },
+  {
+    label: "Consultas",
+    path: "/consultas",
+    icon: <FileTextIcon width={20} height={20} />,
   },
 ];
 
