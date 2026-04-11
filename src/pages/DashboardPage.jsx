@@ -10,6 +10,7 @@ import {
 } from '@radix-ui/react-icons'
 import { useDashboard } from '../hooks/useDashboard.js'
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 async function handleExportarPDF(empleados) {
   const { exportarEmpleadosPDF } = await import('../lib/exportar.js')
@@ -21,55 +22,20 @@ function formatCurrency(valor) {
   return new Intl.NumberFormat('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(valor)
 }
 
-// ── Datos mock para Actividad Reciente (ya que no hay endpoint de transacciones) ──
-const actividadRecienteMock = [
-  {
-    id: 1,
-    tipo: 'Salario Base',
-    empleado: 'Nelson Diaz',
-    fecha: '25 Apr',
-    monto: '+$240,000.00',
-    estado: 'INGRESO',
-    montoColor: 'text-primary-400',
-    badgeBg: 'bg-primary-100',
-    badgeColor: 'text-primary-500',
-  },
-  {
-    id: 2,
-    tipo: 'Salario Base',
-    empleado: 'Maria Perez',
-    fecha: '25 Apr',
-    monto: '+$180,000.00',
-    estado: 'INGRESO',
-    montoColor: 'text-primary-400',
-    badgeBg: 'bg-primary-100',
-    badgeColor: 'text-primary-500',
-  },
-  {
-    id: 3,
-    tipo: 'Seguro Familiar de Salud (SFS)',
-    empleado: 'Nelson Diaz',
-    fecha: '25 Apr',
-    monto: '-$7,296.00',
-    estado: 'DEDUCCIÓN',
-    montoColor: 'text-grey-600',
-    badgeBg: 'bg-grey-200',
-    badgeColor: 'text-grey-600',
-  },
-  {
-    id: 4,
-    tipo: 'Seguro Familiar de Salud (SFS)',
-    empleado: 'Maria Perez',
-    fecha: '25 Apr',
-    monto: '-$5,472.00',
-    estado: 'DEDUCCIÓN',
-    montoColor: 'text-grey-600',
-    badgeBg: 'bg-grey-200',
-    badgeColor: 'text-grey-600',
+function formatFechaCorta(fechaStr) {
+  if (!fechaStr) return '—'
+  try {
+    const [year, month, day] = fechaStr.split('-').map(Number)
+    const fecha = new Date(year, month - 1, day)
+    const mes = fecha.toLocaleDateString('es-ES', { month: 'short' })
+    return `${fecha.getDate()} ${mes.charAt(0).toUpperCase() + mes.slice(1)}`
+  } catch {
+    return fechaStr
   }
-]
+}
 
 function DashboardPage() {
+  const navigate = useNavigate()
   const { data, loading, error } = useDashboard()
   const [exportando, setExportando] = useState(false)
 
@@ -153,9 +119,6 @@ function DashboardPage() {
               <h2 className="text-lg font-bold text-grey-700">Total Nómina Mensual</h2>
               <Tooltip.Provider delayDuration={300}>
                 <Tooltip.Root>
-                  <Tooltip.Trigger asChild>
-                    <span className="text-xs text-grey-400 cursor-default">Mes Actual</span>
-                  </Tooltip.Trigger>
                   <Tooltip.Portal>
                     <Tooltip.Content
                       className="bg-grey-700 text-white text-xs px-2 py-1 rounded"
@@ -185,25 +148,16 @@ function DashboardPage() {
               <div className="flex items-center gap-3">
                 <span className="text-grey-400 text-sm font-medium">Ingresos brutos:</span>
                 <span className="text-base font-bold text-primary-400">
-                  ${loading ? '...' : formatCurrency(data.totalNomina)}
+                  ${loading ? '...' : formatCurrency(data.totalIngresosMes)}
                 </span>
               </div>
               <Separator.Root orientation="vertical" className="w-px h-6 bg-grey-300" />
               <div className="flex items-center gap-3">
-                <span className="text-grey-400 text-sm font-medium">Deducciones estimadas:</span>
+                <span className="text-grey-400 text-sm font-medium">Deducciones reales:</span>
                 <span className="text-base font-bold text-grey-600">
-                  {/* Estimación básica de ley (SFS 3.04% + AFP 2.87% = 5.91%) */}
-                  -${loading ? '...' : formatCurrency(data.totalNomina * 0.0591)}
+                  -${loading ? '...' : formatCurrency(data.totalDeduccionesMes)}
                 </span>
               </div>
-            </div>
-
-            {/* Footer */}
-            <div className="flex items-center gap-2 mt-auto">
-              <PersonIcon className="text-primary-300" />
-              <span className="text-sm text-grey-400">
-                {loading ? '...' : `${data.empleadosActivos} Empleados Activos`}
-              </span>
             </div>
           </div>
 
@@ -269,8 +223,11 @@ function DashboardPage() {
         >
           {/* Header tabla */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-grey-200">
-            <h2 className="text-lg font-bold text-grey-700">Actividad Reciente (Ejemplo)</h2>
-            <button className="flex items-center gap-1 text-sm text-primary-400 font-medium hover:text-primary-500 transition-colors cursor-pointer">
+            <h2 className="text-lg font-bold text-grey-700">Actividad Reciente</h2>
+            <button
+              onClick={() => navigate('/transacciones')}
+              className="flex items-center gap-1 text-sm text-primary-400 font-medium hover:text-primary-500 transition-colors cursor-pointer"
+            >
               Ver todas
               <ArrowRightIcon />
             </button>
@@ -286,56 +243,68 @@ function DashboardPage() {
           </div>
 
           {/* Filas */}
-          {actividadRecienteMock.map((item, idx) => (
-            <div key={item.id}>
-              <div
-                className="grid items-center px-6 py-4 hover:bg-grey-100 transition-colors"
-                style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr' }}
-              >
-                {/* Tipo */}
-                <div className="flex items-center gap-2">
-                  <CheckCircledIcon className={item.estado === 'INGRESO' ? 'text-primary-300 w-4 h-4' : 'text-grey-400 w-4 h-4'} />
-                  <span className="text-sm text-grey-700">{item.tipo}</span>
+          {loading ? (
+            <div className="px-6 py-8 text-sm text-grey-400">Cargando actividad...</div>
+          ) : data.transaccionesRecientes.length === 0 ? (
+            <div className="px-6 py-8 text-sm text-grey-400">No hay actividad reciente disponible.</div>
+          ) : (
+            data.transaccionesRecientes.map((item, idx) => {
+              const esIngreso = item.estado === 'INGRESO'
+
+              return (
+                <div key={item.id}>
+                  <div
+                    className="grid items-center px-6 py-4 hover:bg-grey-100 transition-colors"
+                    style={{ gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr' }}
+                  >
+                    {/* Tipo */}
+                    <div className="flex items-center gap-2">
+                      <CheckCircledIcon className={esIngreso ? 'text-primary-300 w-4 h-4' : 'text-grey-400 w-4 h-4'} />
+                      <span className="text-sm text-grey-700">{item.tipo}</span>
+                    </div>
+
+                    {/* Empleado */}
+                    <span className="text-sm text-grey-700">{item.empleado}</span>
+
+                    {/* Fecha */}
+                    <span className="text-sm text-grey-400">{formatFechaCorta(item.fecha)}</span>
+
+                    {/* Monto */}
+                    <span className={`text-sm font-bold ${esIngreso ? 'text-primary-400' : 'text-grey-600'}`}>
+                      {esIngreso ? '+' : '-'}${formatCurrency(item.monto)}
+                    </span>
+
+                    {/* Estado — Badge con Tooltip */}
+                    <Tooltip.Provider delayDuration={300}>
+                      <Tooltip.Root>
+                        <Tooltip.Trigger asChild>
+                          <span
+                            className={`inline-flex items-center justify-center px-3 py-1 rounded-lg text-xs font-semibold ${esIngreso ? 'bg-primary-100 text-primary-500' : 'bg-grey-200 text-grey-600'} w-fit cursor-default`}
+                          >
+                            {item.estado}
+                          </span>
+                        </Tooltip.Trigger>
+                        <Tooltip.Portal>
+                          <Tooltip.Content
+                            className="bg-grey-700 text-white text-xs px-2 py-1 rounded"
+                            sideOffset={4}
+                          >
+                            {esIngreso ? 'Registro de ingreso salarial' : 'Registro de deducción'}
+                            <Tooltip.Arrow className="fill-grey-700" />
+                          </Tooltip.Content>
+                        </Tooltip.Portal>
+                      </Tooltip.Root>
+                    </Tooltip.Provider>
+                  </div>
+
+                  {/* Separador entre filas */}
+                  {idx < data.transaccionesRecientes.length - 1 && (
+                    <Separator.Root className="h-px bg-grey-200 mx-6" />
+                  )}
                 </div>
-
-                {/* Empleado */}
-                <span className="text-sm text-grey-700">{item.empleado}</span>
-
-                {/* Fecha */}
-                <span className="text-sm text-grey-400">{item.fecha}</span>
-
-                {/* Monto */}
-                <span className={`text-sm font-bold ${item.montoColor}`}>{item.monto}</span>
-
-                {/* Estado — Badge con Tooltip */}
-                <Tooltip.Provider delayDuration={300}>
-                  <Tooltip.Root>
-                    <Tooltip.Trigger asChild>
-                      <span
-                        className={`inline-flex items-center justify-center px-3 py-1 rounded-lg text-xs font-semibold ${item.badgeBg} ${item.badgeColor} w-fit cursor-default`}
-                      >
-                        {item.estado}
-                      </span>
-                    </Tooltip.Trigger>
-                    <Tooltip.Portal>
-                      <Tooltip.Content
-                        className="bg-grey-700 text-white text-xs px-2 py-1 rounded"
-                        sideOffset={4}
-                      >
-                        {item.estado === 'INGRESO' ? 'Registro de ingreso salarial' : 'Registro de deducción'}
-                        <Tooltip.Arrow className="fill-grey-700" />
-                      </Tooltip.Content>
-                    </Tooltip.Portal>
-                  </Tooltip.Root>
-                </Tooltip.Provider>
-              </div>
-
-              {/* Separador entre filas */}
-              {idx < actividadRecienteMock.length - 1 && (
-                <Separator.Root className="h-px bg-grey-200 mx-6" />
-              )}
-            </div>
-          ))}
+              )
+            })
+          )}
         </div>
 
       </div>
