@@ -10,6 +10,7 @@ import {
   ArrowTopRightIcon,
   FileTextIcon,
   ReaderIcon,
+  RulerHorizontalIcon,
 } from "@radix-ui/react-icons";
 
 /** @type {{ label: string, path: string, icon: import('react').ReactNode }[]} */
@@ -35,19 +36,14 @@ const NAV_ITEMS = [
     icon: <ArrowTopRightIcon width={20} height={20} />,
   },
   {
-    label: "Asientos Contables",
-    path: "/asientos-contables",
-    icon: <ReaderIcon width={20} height={20} />,
-  },
-  {
     label: "Consultas",
     path: "/consultas",
     icon: <FileTextIcon width={20} height={20} />,
   },
   {
-    label: "Asientos",
+    label: "Asientos Contables",
     path: "/asientos-contables",
-    icon: <FileTextIcon width={20} height={20} />,
+    icon: <RulerHorizontalIcon width={20} height={20} />,
   },
 ];
 
