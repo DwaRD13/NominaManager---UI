@@ -632,7 +632,7 @@ function TransaccionesPage() {
             className="grid items-center px-5 py-3 bg-grey-100 border-b border-grey-200"
             style={{ gridTemplateColumns: '1fr 1.5fr 1.5fr 1fr 0.8fr 0.5fr' }}
           >
-            {['Fecha', 'Tipo', 'Empleado', 'Monto', 'Estado', ''].map((col) => (
+            {['Fecha', 'Descripción', 'Empleado', 'Monto', 'Tipo', ''].map((col) => (
               <span key={col} className="text-xs font-semibold text-grey-400 uppercase tracking-wide">
                 {col}
               </span>
