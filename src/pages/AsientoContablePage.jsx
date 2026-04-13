@@ -599,7 +599,7 @@ export default function AsientoContablePage() {
                   </span>
                 </div>
                 <span className="text-xs font-mono font-bold text-grey-500 bg-grey-100 px-2 py-1 rounded w-fit">
-                  {asiento.idContabilidad || "---"}
+                  {asiento.idContabilidad ? `#${asiento.idContabilidad}` : "Pendiente"}
                 </span>
                 <div className="flex justify-end">
                   <DetalleAsientoDialog
