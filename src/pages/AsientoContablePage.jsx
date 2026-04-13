@@ -41,6 +41,7 @@ async function exportarPDF(asientos) {
         "Fecha Fin",
         "Monto Total Transacción",
         "Monto Total en RD$",
+        "ID Contabilidad",
       ],
     ],
     body: asientos.map((a) => [
@@ -51,6 +52,7 @@ async function exportarPDF(asientos) {
       formatDate(a.fechaFin),
       formatMoney(a.montoTotalTransaccion),
       formatMoney(a.montoTotalDop),
+      a.idContabilidad,
     ]),
   });
   doc.save("asientos_contables.pdf");
@@ -66,6 +68,7 @@ async function exportarXLSX(asientos) {
     "Fecha Fin": new Date(a.fechaFin).toLocaleDateString("es-DO"),
     "Monto Total Transacción": a.montoTotalTransaccion,
     "Monto Total en RD$": a.montoTotalDop,
+    "ID Contabilidad": a.idContabilidad || "—",
   }));
   const ws = XLSX.utils.json_to_sheet(data);
   const wb = XLSX.utils.book_new();
@@ -279,9 +282,10 @@ function NuevoAsientoDialog({ monedas, onGuardar, saving, toast }) {
     </Dialog.Root>
   );
 }
+const GRID_LAYOUT = "grid-cols-[0.6fr_2fr_1.2fr_1.2fr_1fr_0.6fr]";
 
 // ──────────────────────────────────────────────────────────────────
-// Diálogo para ver detalles del asiento (DTO)
+// Diálogo para ver detalles
 // ──────────────────────────────────────────────────────────────────
 function DetalleAsientoDialog({ asientoId, obtenerDetalle, toast, children }) {
   const [open, setOpen] = useState(false);
@@ -290,25 +294,20 @@ function DetalleAsientoDialog({ asientoId, obtenerDetalle, toast, children }) {
   const [errorDetalle, setErrorDetalle] = useState(null);
 
   const handleOpenChange = async (isOpen) => {
+    setOpen(isOpen);
     if (isOpen && asientoId) {
       setCargando(true);
       setErrorDetalle(null);
       try {
         const data = await obtenerDetalle(asientoId);
         setDetalle(data);
-        console.log("Detalle obtenido:", data);
       } catch (err) {
         setErrorDetalle(err.message);
-        toast({
-          title: "Error al cargar detalles",
-          description: err.message,
-          variant: "error",
-        });
+        toast({ title: "Error", description: err.message, variant: "error" });
       } finally {
         setCargando(false);
       }
     }
-    setOpen(isOpen);
     if (!isOpen) {
       setDetalle(null);
       setErrorDetalle(null);
@@ -320,149 +319,150 @@ function DetalleAsientoDialog({ asientoId, obtenerDetalle, toast, children }) {
       <Dialog.Trigger asChild>{children}</Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/40 z-40" />
-        <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-white rounded-xl p-6 w-full max-w-3xl max-h-[85vh] overflow-y-auto shadow-2xl focus:outline-none">
-          <Dialog.Title className="text-xl font-bold text-grey-700 mb-1">
-            Detalle del Asiento {detalle?.descripcion}
+        <Dialog.Content className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 bg-white rounded-xl p-6 w-full max-w-3xl max-h-[85vh] overflow-y-auto shadow-2xl">
+          <Dialog.Title className="text-xl font-bold text-grey-700">
+            Detalle del Asiento {detalle?.id && `#${detalle.id}`}
           </Dialog.Title>
-          <Dialog.Description className="text-sm text-grey-400 mb-4">
-            Información completa del asiento y sus transacciones.
-          </Dialog.Description>
-          <Separator.Root className="h-px bg-grey-200 mb-4" />
+          <Separator.Root className="h-px bg-grey-200 my-4" />
 
           {cargando && (
-            <div className="flex justify-center py-8">
-              <UpdateIcon className="animate-spin w-6 h-6 text-primary-400" />
+            <div className="flex flex-col items-center justify-center py-20 gap-3">
+              <UpdateIcon className="animate-spin w-10 h-10 text-primary-400" />
+              <p className="text-grey-400 text-sm animate-pulse">
+                Cargando transacciones...
+              </p>
             </div>
           )}
 
-          {errorDetalle && (
-            <div className="p-3 bg-red-50 text-red-500 rounded-lg text-sm">
-              {errorDetalle}
-            </div>
-          )}
-
-          {detalle && (
-            <div className="flex flex-col gap-4 text-sm">
-              {/* Información general */}
-              <div className="grid grid-cols-2 gap-2 bg-grey-50 p-3 rounded-lg">
-                <span className="font-semibold text-grey-600">ID Asiento:</span>
-                <span>{detalle.idAsiento ?? detalle.id}</span>
-                <span className="font-semibold text-grey-600">
-                  Descripción:
-                </span>
-                <span>{detalle.descripcion || "—"}</span>
-                <span className="font-semibold text-grey-600">
-                  Fecha del asiento:
-                </span>
-                <span>{formatDateLocal(detalle.fechaAsiento)}</span>
-                <span className="font-semibold text-grey-600">
-                  Fecha del inicio del asiento:
-                </span>
-                <span>{formatDateLocal(detalle.fechaInicio)}</span>
-                <span className="font-semibold text-grey-600">
-                  Fecha de fin del asiento:
-                </span>
-                <span>{formatDateLocal(detalle.fechaFin)}</span>
-                <span className="font-semibold text-grey-600">
-                  Monto total:
-                </span>
-                <span className="font-bold text-primary-600">
-                  {detalle.moneda +
-                    formatMoneyGeneral(detalle.montoTotalTransaccion)}
-                </span>
-                <span className="font-semibold text-grey-600">
-                  Monto total en RD$:
-                </span>
-                <span className="font-bold text-primary-600">
-                  {formatMoney(detalle.montoTotalDop)}
-                </span>
-                <span className="font-semibold text-grey-600">Estado:</span>
-                <span>
-                  {detalle.estado === true
-                    ? "Activo"
-                    : "Inactivo" || detalle.estado}
-                </span>
+          {!cargando && detalle && (
+            <div className="flex flex-col gap-6 text-sm">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 bg-grey-50 p-4 rounded-xl border border-grey-100">
+                <div className="flex flex-col">
+                  <span className="text-[10px] uppercase font-bold text-grey-400">
+                    Descripción
+                  </span>
+                  <span className="font-medium">{detalle.descripcion}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[10px] uppercase font-bold text-grey-400">
+                    Fecha Asiento
+                  </span>
+                  <span>{formatDateLocal(detalle.fechaAsiento)}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[10px] uppercase font-bold text-grey-400">
+                    ID Contabilidad
+                  </span>
+                  <span className="font-mono font-bold text-primary-600">
+                    {detalle.idContabilidad || "Pendiente"}
+                  </span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[10px] uppercase font-bold text-grey-400">
+                    Monto Original
+                  </span>
+                  <span className="font-bold text-grey-700">
+                    {detalle.moneda}{" "}
+                    {formatMoneyGeneral(detalle.montoTotalTransaccion)}
+                  </span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[10px] uppercase font-bold text-grey-400">
+                    Total en RD$
+                  </span>
+                  <span className="font-bold text-green-600">
+                    {formatMoney(detalle.montoTotalDop)}
+                  </span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[10px] uppercase font-bold text-grey-400">
+                    Estado
+                  </span>
+                  <span
+                    className={`font-semibold ${detalle.estado ? "text-green-500" : "text-red-500"}`}
+                  >
+                    {detalle.estado ? "Activo" : "Inactivo"}
+                  </span>
+                </div>
               </div>
 
-              {/* Si hay lista de transacciones (detalle.transacciones o similar) */}
-              {detalle.registroTransaccion &&
-                detalle.registroTransaccion.length > 0 && (
-                  <>
-                    <h3 className="font-bold text-grey-700 mt-2">
-                      Transacciones
-                    </h3>
-                    <div className="border rounded-lg overflow-hidden">
-                      <table className="min-w-full text-xs">
-                        <thead className="bg-grey-100">
-                          <tr>
-                            <th className="px-3 py-2 text-left">Tipo</th>
-                            <th className="px-3 py-2 text-left">Empleado</th>
-                            <th className="px-3 py-2 text-right">Monto</th>
+              <div>
+                <h3 className="font-bold text-grey-700 mb-3 flex items-center gap-2">
+                  Transacciones vinculadas
+                  <span className="px-2 py-0.5 bg-grey-100 text-grey-500 rounded-full text-[10px]">
+                    {detalle.registroTransaccion?.length || 0}
+                  </span>
+                </h3>
+                <div className="border border-grey-200 rounded-xl overflow-hidden shadow-sm">
+                  <table className="min-w-full text-xs">
+                    <thead className="bg-grey-100 border-b border-grey-200">
+                      <tr>
+                        <th className="px-4 py-3 text-left font-bold text-grey-500 uppercase tracking-wider">
+                          Tipo
+                        </th>
+                        <th className="px-4 py-3 text-left font-bold text-grey-500 uppercase tracking-wider">
+                          Concepto
+                        </th>
+                        <th className="px-4 py-3 text-left font-bold text-grey-500 uppercase tracking-wider">
+                          Empleado
+                        </th>
+                        <th className="px-4 py-3 text-right font-bold text-grey-500 uppercase tracking-wider">
+                          Monto
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-grey-100">
+                      {detalle.registroTransaccion?.map((t, idx) => {
+                        const esIngreso = !!t.tipoDeIngreso;
+                        return (
+                          <tr
+                            key={idx}
+                            className="hover:bg-grey-50 transition-colors"
+                          >
+                            <td className="px-4 py-3">
+                              <span
+                                className={`px-2 py-1 rounded-md font-bold text-[9px] uppercase ${
+                                  esIngreso
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-red-100 text-red-700"
+                                }`}
+                              >
+                                {esIngreso ? "Ingreso" : "Deducción"}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-grey-700 font-medium">
+                              {t.tipoTransaccion ||
+                                t.tipoDeIngresonombre ||
+                                t.tipoDeDeduccion?.nombre ||
+                                "—"}
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex flex-col">
+                                <span className="font-medium text-grey-700">
+                                  {t.empleado?.nombre || "—"}
+                                </span>
+                                <span className="text-[10px] text-grey-400">
+                                  {t.empleado?.cedula}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-right font-bold text-grey-700">
+                              {formatMoney(t.monto)}
+                            </td>
                           </tr>
-                        </thead>
-                        <tbody>
-                          {detalle.registroTransaccion.map((t, idx) => (
-                            <tr key={idx} className="border-t">
-                              <td className="px-3 py-2">
-                                {t.tipoTransaccion ||
-                                  t.tipoDeIngreso?.nombre ||
-                                  "—"}
-                              </td>
-                              <td className="px-3 py-2">
-                                {t.empleado?.nombre || "—"}
-                              </td>
-                              <td className="px-3 py-2 text-right">
-                                {formatMoney(t.monto)}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </>
-                )}
-
-              {/* Si el detalle tiene un solo objeto empleado o ingreso, mostrarlo */}
-              {detalle.empleado && (
-                <div className="bg-grey-50 p-3 rounded-lg">
-                  <h4 className="font-semibold text-grey-700 mb-2">Empleado</h4>
-                  <div className="grid grid-cols-2 gap-1 text-xs">
-                    <span>Nombre:</span>
-                    <span>{detalle.empleado.nombre || "—"}</span>
-                    <span>Cédula:</span>
-                    <span>{detalle.empleado.cedula || "—"}</span>
-                    <span>Departamento:</span>
-                    <span>{detalle.empleado.departamento || "—"}</span>
-                    <span>Estado:</span>
-                    <span>{detalle.empleado.estado || "—"}</span>
-                  </div>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
-              )}
-
-              {detalle.tipoDeIngreso && (
-                <div className="bg-grey-50 p-3 rounded-lg">
-                  <h4 className="font-semibold text-grey-700 mb-2">
-                    Concepto de ingreso
-                  </h4>
-                  <div className="grid grid-cols-2 gap-1 text-xs">
-                    <span>Nombre:</span>
-                    <span>{detalle.tipoDeIngreso.nombre}</span>
-                    <span>Depende de salario:</span>
-                    <span>
-                      {detalle.tipoDeIngreso.dependeDeSalario ? "Sí" : "No"}
-                    </span>
-                    <span>Estado:</span>
-                    <span>{detalle.tipoDeIngreso.estado}</span>
-                  </div>
-                </div>
-              )}
+              </div>
             </div>
           )}
 
-          <div className="flex justify-end mt-6">
+          <div className="flex justify-end mt-8">
             <Dialog.Close asChild>
-              <button className="px-4 py-2 text-sm font-medium text-grey-500 rounded-lg border border-grey-200 hover:bg-grey-100">
-                Cerrar
+              <button className="px-6 py-2 text-sm font-semibold text-grey-500 rounded-xl border border-grey-200 hover:bg-grey-100 transition-colors cursor-pointer">
+                Cerrar Detalle
               </button>
             </Dialog.Close>
           </div>
@@ -473,7 +473,7 @@ function DetalleAsientoDialog({ asientoId, obtenerDetalle, toast, children }) {
 }
 
 // ──────────────────────────────────────────────────────────────────
-// Componente principal
+// Componente Principal
 // ──────────────────────────────────────────────────────────────────
 export default function AsientoContablePage() {
   const { toast } = useToast();
@@ -492,63 +492,27 @@ export default function AsientoContablePage() {
     a.descripcion?.toLowerCase().includes(busqueda.toLowerCase()),
   );
 
-  const handleExportPDF = () => {
-    if (filtrados.length === 0) {
-      toast({
-        title: "No hay datos",
-        description: "No hay asientos para exportar.",
-        variant: "error",
-      });
-      return;
-    }
-    exportarPDF(filtrados).catch((err) =>
-      toast({
-        title: "Error al exportar PDF",
-        description: err.message,
-        variant: "error",
-      }),
-    );
-  };
-
-  const handleExportXLSX = () => {
-    if (filtrados.length === 0) {
-      toast({
-        title: "No hay datos",
-        description: "No hay asientos para exportar.",
-        variant: "error",
-      });
-      return;
-    }
-    exportarXLSX(filtrados).catch((err) =>
-      toast({
-        title: "Error al exportar XLSX",
-        description: err.message,
-        variant: "error",
-      }),
-    );
-  };
-
   return (
     <div className="flex flex-col gap-6 px-8 pt-10 pb-8 min-h-screen bg-grey-50">
-      <div>
-        <h1 className="text-3xl font-bold text-grey-700">Asientos Contables</h1>
-        <nav className="flex items-center gap-1 text-sm text-grey-400">
-          <span>Contabilidad</span> /{" "}
-          <span className="font-medium text-grey-700">Historial</span>
-        </nav>
+      <div className="flex justify-between items-end">
+        <div>
+          <h1 className="text-3xl font-bold text-grey-700">
+            Asientos Contables
+          </h1>
+          <nav className="flex items-center gap-1 text-sm text-grey-400">
+            <span>Contabilidad</span> /{" "}
+            <span className="font-medium text-grey-700">
+              Historial de Asientos
+            </span>
+          </nav>
+        </div>
       </div>
 
-      {error && (
-        <div className="p-3 bg-red-50 text-red-500 border border-red-200 rounded-xl text-sm">
-          {error}
-        </div>
-      )}
-
-      <div className="bg-white rounded-xl border border-grey-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-grey-200 shadow-sm overflow-hidden">
         {/* Toolbar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-grey-200">
-          <div className="flex-1 flex items-center gap-2 px-3 py-2 max-w-md rounded-xl border border-grey-200 focus-within:border-primary-400 transition-colors">
-            <MagnifyingGlassIcon className="text-grey-300" />
+        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-grey-200 bg-white">
+          <div className="flex-1 flex items-center gap-2 px-3 py-2 max-w-md rounded-xl border border-grey-200 focus-within:border-primary-400 focus-within:ring-2 focus-within:ring-primary-100 transition-all">
+            <MagnifyingGlassIcon className="text-grey-300 w-5 h-5" />
             <input
               placeholder="Buscar por descripción..."
               className="text-sm w-full outline-none"
@@ -557,46 +521,23 @@ export default function AsientoContablePage() {
             />
           </div>
           <div className="flex items-center gap-2">
-            <Tooltip.Provider>
-              <Tooltip.Root>
-                <Tooltip.Trigger asChild>
-                  <button
-                    onClick={handleExportPDF}
-                    disabled={loading || filtrados.length === 0}
-                    className="p-2 rounded-lg border border-grey-200 hover:bg-grey-100 disabled:opacity-40"
-                  >
-                    <FileTextIcon className="w-4 h-4" />
-                  </button>
-                </Tooltip.Trigger>
-                <Tooltip.Portal>
-                  <Tooltip.Content
-                    sideOffset={4}
-                    className="bg-grey-700 text-white text-xs px-2 py-1 rounded"
-                  >
-                    Exportar PDF
-                  </Tooltip.Content>
-                </Tooltip.Portal>
-              </Tooltip.Root>
-              <Tooltip.Root>
-                <Tooltip.Trigger asChild>
-                  <button
-                    onClick={handleExportXLSX}
-                    disabled={loading || filtrados.length === 0}
-                    className="p-2 rounded-lg border border-grey-200 hover:bg-grey-100 disabled:opacity-40"
-                  >
-                    <DownloadIcon className="w-4 h-4 text-primary-500" />
-                  </button>
-                </Tooltip.Trigger>
-                <Tooltip.Portal>
-                  <Tooltip.Content
-                    sideOffset={4}
-                    className="bg-grey-700 text-white text-xs px-2 py-1 rounded"
-                  >
-                    Exportar XLSX
-                  </Tooltip.Content>
-                </Tooltip.Portal>
-              </Tooltip.Root>
-            </Tooltip.Provider>
+            <button
+              onClick={() => exportarPDF(filtrados)}
+              disabled={loading || filtrados.length === 0}
+              className="p-2.5 rounded-xl border border-grey-200 hover:bg-grey-50 text-grey-600 disabled:opacity-40 transition-colors cursor-pointer"
+              title="Exportar PDF"
+            >
+              <FileTextIcon className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => exportarXLSX(filtrados)}
+              disabled={loading || filtrados.length === 0}
+              className="p-2.5 rounded-xl border border-grey-200 hover:bg-grey-50 text-green-600 disabled:opacity-40 transition-colors cursor-pointer"
+              title="Exportar Excel"
+            >
+              <DownloadIcon className="w-5 h-5" />
+            </button>
+
             <NuevoAsientoDialog
               monedas={monedas}
               onGuardar={crearAsiento}
@@ -606,54 +547,71 @@ export default function AsientoContablePage() {
           </div>
         </div>
 
-        {/* Tabla header */}
-        <div className="grid grid-cols-[0.8fr_2fr_1.5fr_1.5fr_0.5fr] px-5 py-3 bg-grey-100 border-b border-grey-200 text-[10px] font-bold text-grey-400 uppercase tracking-widest">
-          <span>ID</span>
+        {/* Tabla Header - Usando GRID_LAYOUT constante */}
+        <div
+          className={`grid ${GRID_LAYOUT} px-5 py-4 bg-grey-50 border-b border-grey-200 text-[10px] font-bold text-grey-400 uppercase tracking-widest`}
+        >
+          <span>ID Interno</span>
           <span>Descripción</span>
           <span>Fecha Asiento</span>
           <span>Monto Total</span>
-          <span>Acciones</span>
+          <span>ID Contabilidad</span>
+          <span className="text-right px-2">Acciones</span>
         </div>
 
         {/* Filas */}
-        <div className="divide-y divide-grey-200">
+        <div className="divide-y divide-grey-100">
           {loading ? (
-            <div className="p-16 flex flex-col items-center gap-3 text-grey-400">
-              <UpdateIcon className="animate-spin w-6 h-6" />
-              <p className="text-sm">Obteniendo registros...</p>
+            <div className="p-20 flex flex-col items-center gap-3 text-grey-400">
+              <UpdateIcon className="animate-spin w-8 h-8 text-primary-400" />
+              <p className="text-sm font-medium">
+                Cargando historial contable...
+              </p>
             </div>
           ) : filtrados.length === 0 ? (
-            <p className="p-10 text-center text-grey-400 text-sm">
-              No hay registros disponibles.
-            </p>
+            <div className="p-20 text-center">
+              <p className="text-grey-400 text-sm italic">
+                No se encontraron registros que coincidan.
+              </p>
+            </div>
           ) : (
             filtrados.map((asiento) => (
               <div
                 key={asiento.id}
-                className="grid grid-cols-[0.8fr_2fr_1.5fr_1.5fr_0.5fr] items-center px-5 py-4 hover:bg-grey-50 transition-colors"
+                className={`grid ${GRID_LAYOUT} items-center px-5 py-4 hover:bg-primary-50/30 transition-colors group`}
               >
                 <span className="text-sm font-bold text-primary-500">
                   #{asiento.id}
                 </span>
-                <span className="text-sm text-grey-700 font-medium">
+                <span className="text-sm text-grey-700 font-semibold truncate pr-4">
                   {asiento.descripcion}
                 </span>
                 <span className="text-sm text-grey-500">
                   {formatDateLocal(asiento.fechaAsiento)}
                 </span>
-                <span className="text-sm font-bold text-grey-700">
-                  {asiento.moneda +
-                    formatMoneyGeneral(asiento.montoTotalTransaccion)}
+                <div className="flex flex-col">
+                  <span className="text-sm font-bold text-grey-700">
+                    {asiento.moneda}{" "}
+                    {formatMoneyGeneral(asiento.montoTotalTransaccion)}
+                  </span>
+                  <span className="text-[10px] text-grey-400">
+                    Eq: {formatMoney(asiento.montoTotalDop)}
+                  </span>
+                </div>
+                <span className="text-xs font-mono font-bold text-grey-500 bg-grey-100 px-2 py-1 rounded w-fit">
+                  {asiento.idContabilidad || "---"}
                 </span>
-                <DetalleAsientoDialog
-                  asientoId={asiento.id}
-                  obtenerDetalle={obtenerDetalle}
-                  toast={toast}
-                >
-                  <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-primary-100 text-grey-400 hover:text-primary-500 transition-colors cursor-pointer">
-                    <EyeOpenIcon />
-                  </button>
-                </DetalleAsientoDialog>
+                <div className="flex justify-end">
+                  <DetalleAsientoDialog
+                    asientoId={asiento.id}
+                    obtenerDetalle={obtenerDetalle}
+                    toast={toast}
+                  >
+                    <button className="w-9 h-9 flex items-center justify-center rounded-xl bg-white border border-grey-200 shadow-sm text-grey-400 group-hover:text-primary-500 group-hover:border-primary-200 transition-all hover:scale-110 cursor-pointer">
+                      <EyeOpenIcon className="w-5 h-5" />
+                    </button>
+                  </DetalleAsientoDialog>
+                </div>
               </div>
             ))
           )}

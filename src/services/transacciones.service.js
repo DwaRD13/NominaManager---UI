@@ -1,7 +1,7 @@
-import api from './api.js'
+import api from "./api.js";
 
 // Base: /v1/transaccion (singular)
-const ENDPOINT = '/v1/registros-transaccion'
+const ENDPOINT = "/v1/registros-transaccion";
 
 /**
  * Estructura real que devuelve el backend
@@ -19,6 +19,8 @@ const ENDPOINT = '/v1/registros-transaccion'
  * @property {string} empleado.departamento
  * @property {Object} tipoDeIngreso
  * @property {Object} tipoDeDeduccion
+ * @property {number} idAsiento
+
  */
 
 /**
@@ -34,6 +36,8 @@ const ENDPOINT = '/v1/registros-transaccion'
  * @property {string} estado - 'INGRESO' | 'DEDUCCIÓN'
  * @property {Object} tipoDeIngreso
  * @property {Object} tipoDeDeduccion
+ * @property {number} idAsiento
+
  */
 
 /**
@@ -61,4 +65,4 @@ export const transaccionesService = {
 
   /** @param {number} id @returns {Promise<string>} - mensaje de confirmación */
   delete: (id) => api.put(`${ENDPOINT}/eliminar/${id}`).then((r) => r.data),
-}
+};
