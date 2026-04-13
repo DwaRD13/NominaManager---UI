@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react'
-import { transaccionesService } from '../services/transacciones.service.js'
-import { empleadosService } from '../services/empleados.service.js'
-import { tiposIngresosService } from '../services/tiposIngresos.service.js'
-import { tiposDeduccionesService } from '../services/tiposDeducciones.service.js'
+import { useState, useEffect } from "react";
+import { transaccionesService } from "../services/transacciones.service.js";
+import { empleadosService } from "../services/empleados.service.js";
+import { tiposIngresosService } from "../services/tiposIngresos.service.js";
+import { tiposDeduccionesService } from "../services/tiposDeducciones.service.js";
 
-const PAGE_SIZE = 8
+const PAGE_SIZE = 8;
 
 /**
  * Normaliza la respuesta del backend al formato que espera la UI
@@ -13,18 +13,18 @@ const PAGE_SIZE = 8
  */
 function normalizarTransaccion(t) {
   // Determinar el tipo: si tiene tipoDeIngreso es ingreso, si tiene tipoDeDeduccion es deducción
-  const tieneIngreso = t.tipoDeIngreso != null
-  const tieneDeduccion = t.tipoDeDeduccion != null
-  
+  const tieneIngreso = t.tipoDeIngreso != null;
+  const tieneDeduccion = t.tipoDeDeduccion != null;
+
   // El estado se determina por cuál tipo está presente
-  const estado = tieneIngreso ? 'INGRESO' : 'DEDUCCIÓN'
-  
+  const estado = tieneIngreso ? "INGRESO" : "DEDUCCIÓN";
+
   // El tipo desalario depende de qué tipo esté presente
-  const dependeDeSalario = tieneIngreso 
-    ? t.tipoDeIngreso?.dependeDeSalario 
-    : tieneDeduccion 
-      ? t.tipoDeDeduccion?.dependeDeSalario 
-      : false
+  const dependeDeSalario = tieneIngreso
+    ? t.tipoDeIngreso?.dependeDeSalario
+    : tieneDeduccion
+      ? t.tipoDeDeduccion?.dependeDeSalario
+      : false;
 
   return {
     id: t.id,
@@ -36,11 +36,12 @@ function normalizarTransaccion(t) {
     monto: t.monto,
     dependeDeSalario: dependeDeSalario,
     estado: estado,
+    idAsiento: t.idAsiento,
     // Guardar referencia completa para edición
     empleado: t.empleado,
     tipoDeIngreso: t.tipoDeIngreso,
     tipoDeDeduccion: t.tipoDeDeduccion,
-  }
+  };
 }
 
 /**
@@ -73,46 +74,46 @@ function normalizarTransaccion(t) {
  */
 export function useTransacciones() {
   // ── Estado principal ──
-  const [todos, setTodos] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [todos, setTodos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // ── Filtros ──
-  const [busqueda, setBusqueda] = useState('')
-  const [filtroTipo, setFiltroTipo] = useState('todos')
+  const [busqueda, setBusqueda] = useState("");
+  const [filtroTipo, setFiltroTipo] = useState("todos");
 
   // ── Paginación ──
-  const [pagina, setPagina] = useState(1)
+  const [pagina, setPagina] = useState(1);
 
   // ── Estado de guardado ──
-  const [saving, setSaving] = useState(false)
-  const [saveError, setSaveError] = useState(null)
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(null);
 
   // ── Datos para el modal ──
-  const [empleados, setEmpleados] = useState([])
-  const [tiposIngresos, setTiposIngresos] = useState([])
-  const [tiposDeducciones, setTiposDeducciones] = useState([])
+  const [empleados, setEmpleados] = useState([]);
+  const [tiposIngresos, setTiposIngresos] = useState([]);
+  const [tiposDeducciones, setTiposDeducciones] = useState([]);
 
   // ── Carga inicial ──
   useEffect(() => {
-    Promise.all([
-      cargarTransacciones(),
-      cargarDatosModal(),
-    ])
-  }, [])
+    Promise.all([cargarTransacciones(), cargarDatosModal()]);
+  }, []);
 
   async function cargarTransacciones() {
-    setLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);
     try {
-      const data = await transaccionesService.getAll()
+      const data = await transaccionesService.getAll();
+
       // Normalizar los datos del backend al formato que espera la UI
-      const normalizadas = data.map(normalizarTransaccion)
-      setTodos(normalizadas)
+      const normalizadas = data.map(normalizarTransaccion);
+      setTodos(normalizadas);
     } catch (e) {
-      setError(e.response?.data?.message ?? 'Error al cargar las transacciones')
+      setError(
+        e.response?.data?.message ?? "Error al cargar las transacciones",
+      );
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
@@ -123,97 +124,103 @@ export function useTransacciones() {
         empleadosService.getAll(),
         tiposIngresosService.getAll(),
         tiposDeduccionesService.getAll(),
-      ])
-      
+      ]);
+
       // Filtrar solo empleados activos
-      setEmpleados(emps.filter(e => e.estado?.toUpperCase() === 'ACTIVO'))
-      setTiposIngresos(ingresos)
-      setTiposDeducciones(deducciones)
+      setEmpleados(emps.filter((e) => e.estado?.toUpperCase() === "ACTIVO"));
+      setTiposIngresos(ingresos);
+      setTiposDeducciones(deducciones);
     } catch (e) {
-      console.error('Error al cargar datos para modal:', e)
+      console.error("Error al cargar datos para modal:", e);
     }
   }
 
   // ── Filtrado + búsqueda ──
   const filtradas = todos.filter((t) => {
     const matchBusqueda =
-      busqueda.trim() === '' ||
+      busqueda.trim() === "" ||
       t.nombreEmpleado?.toLowerCase().includes(busqueda.toLowerCase()) ||
-      t.tipo?.toLowerCase().includes(busqueda.toLowerCase())
+      t.tipo?.toLowerCase().includes(busqueda.toLowerCase());
 
     const matchTipo =
-      filtroTipo === 'todos' ||
-      t.estado?.toUpperCase() === filtroTipo.toUpperCase()
+      filtroTipo === "todos" ||
+      t.estado?.toUpperCase() === filtroTipo.toUpperCase();
 
-    return matchBusqueda && matchTipo
-  })
+    return matchBusqueda && matchTipo;
+  });
 
   // ── Paginación ──
-  const totalTransacciones = filtradas.length
-  const totalPaginas = Math.max(1, Math.ceil(totalTransacciones / PAGE_SIZE))
-  const paginaSegura = Math.min(pagina, totalPaginas)
-  const rangoDesde = totalTransacciones === 0 ? 0 : (paginaSegura - 1) * PAGE_SIZE + 1
-  const rangoHasta = Math.min(paginaSegura * PAGE_SIZE, totalTransacciones)
-  const transacciones = filtradas.slice((paginaSegura - 1) * PAGE_SIZE, paginaSegura * PAGE_SIZE)
+  const totalTransacciones = filtradas.length;
+  const totalPaginas = Math.max(1, Math.ceil(totalTransacciones / PAGE_SIZE));
+  const paginaSegura = Math.min(pagina, totalPaginas);
+  const rangoDesde =
+    totalTransacciones === 0 ? 0 : (paginaSegura - 1) * PAGE_SIZE + 1;
+  const rangoHasta = Math.min(paginaSegura * PAGE_SIZE, totalTransacciones);
+  const transacciones = filtradas.slice(
+    (paginaSegura - 1) * PAGE_SIZE,
+    paginaSegura * PAGE_SIZE,
+  );
 
   // Resetear a página 1 cuando cambian los filtros
   function handleSetBusqueda(v) {
-    setBusqueda(v)
-    setPagina(1)
+    setBusqueda(v);
+    setPagina(1);
   }
   function handleSetFiltroTipo(v) {
-    setFiltroTipo(v)
-    setPagina(1)
+    setFiltroTipo(v);
+    setPagina(1);
   }
 
   // ── CRUD: Crear ──
   async function crear(data) {
-    setSaving(true)
-    setSaveError(null)
+    setSaving(true);
+    setSaveError(null);
     try {
-      const nueva = await transaccionesService.create(data)
+      const nueva = await transaccionesService.create(data);
       // Recargar transacciones para ver la nueva
-      await cargarTransacciones()
-      return nueva
+      await cargarTransacciones();
+      return nueva;
     } catch (e) {
-      const msg = e.response?.data?.message ?? 'Error al crear la transacción'
-      setSaveError(msg)
-      throw new Error(msg)
+      const msg = e.response?.data?.message ?? "Error al crear la transacción";
+      setSaveError(msg);
+      throw new Error(msg);
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
   }
 
   // ── CRUD: Actualizar ──
   async function actualizar(data) {
-    setSaving(true)
-    setSaveError(null)
+    setSaving(true);
+    setSaveError(null);
     try {
-      const actualizada = await transaccionesService.update(data)
-      await cargarTransacciones()
-      return actualizada
+      const actualizada = await transaccionesService.update(data);
+      await cargarTransacciones();
+      return actualizada;
     } catch (e) {
-      const msg = e.response?.data?.message ?? 'Error al actualizar la transacción'
-      setSaveError(msg)
-      throw new Error(msg)
+      const msg =
+        e.response?.data?.message ?? "Error al actualizar la transacción";
+      setSaveError(msg);
+      throw new Error(msg);
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
   }
 
   // ── CRUD: Eliminar ──
   async function eliminar(id) {
-    setSaving(true)
-    setSaveError(null)
+    setSaving(true);
+    setSaveError(null);
     try {
-      await transaccionesService.delete(id)
-      await cargarTransacciones()
+      await transaccionesService.delete(id);
+      await cargarTransacciones();
     } catch (e) {
-      const msg = e.response?.data?.message ?? 'Error al eliminar la transacción'
-      setSaveError(msg)
-      throw new Error(msg)
+      const msg =
+        e.response?.data?.message ?? "Error al eliminar la transacción";
+      setSaveError(msg);
+      throw new Error(msg);
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
   }
 
@@ -241,5 +248,5 @@ export function useTransacciones() {
     crear,
     actualizar,
     eliminar,
-  }
+  };
 }
