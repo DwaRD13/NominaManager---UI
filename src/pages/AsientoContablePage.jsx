@@ -20,6 +20,7 @@ import { useToast } from "../hooks/useToast.jsx";
 // Funciones de exportación (lazy loading)
 // ──────────────────────────────────────────────────────────────────
 async function exportarPDF(asientos) {
+
   const { default: jsPDF } = await import("jspdf");
   const { default: autoTable } = await import("jspdf-autotable");
   const doc = new jsPDF();
