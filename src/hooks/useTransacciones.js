@@ -104,7 +104,8 @@ export function useTransacciones() {
     setError(null);
     try {
       const data = await transaccionesService.getAll();
-      setTodos(data);
+      const normalizados = data.map(normalizarTransaccion);
+      setTodos(normalizados);
     } catch (e) {
       setError(
         e.response?.data?.message ?? "Error al cargar las transacciones",
