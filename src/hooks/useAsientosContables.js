@@ -1,6 +1,40 @@
 import { useState, useEffect, useCallback } from "react";
 import { asientoContableService } from "../services/asientoContable.service.js";
 
+function getCrearAsientoErrorMessage(err) {
+  const status = err?.response?.status;
+  const data = err?.response?.data;
+
+  const backendMessage =
+    (typeof data === "string" && data) ||
+    data?.message ||
+    data?.error ||
+    err?.message ||
+    "";
+
+  const normalized = backendMessage.toLowerCase();
+  const pareceSinTransacciones =
+    normalized.includes("no hay trans") ||
+    normalized.includes("no existen trans") ||
+    normalized.includes("sin trans") ||
+    normalized.includes("no transaction");
+
+  if (pareceSinTransacciones) {
+    return "No hay transacciones en el período seleccionado.";
+  }
+
+  // Fallback defensivo: el backend hoy devuelve 500 genérico en este caso.
+  if (
+    status === 500 &&
+    (normalized.includes("request failed with status code 500") ||
+      normalized.includes("internal server error"))
+  ) {
+    return "No hay transacciones en el período seleccionado.";
+  }
+
+  return "No se pudo generar el asiento. Verificá las fechas e intentá nuevamente.";
+}
+
 export function useAsientoContable() {
   const [asientos, setAsientos] = useState([]);
   const [monedas, setMonedas] = useState([]);
@@ -36,7 +70,7 @@ export function useAsientoContable() {
       await cargarDatos(); // Refrescar lista
     } catch (err) {
       console.error("Error al crear asiento:", err);
-      throw err;
+      throw new Error(getCrearAsientoErrorMessage(err));
     } finally {
       setSaving(false);
     }
