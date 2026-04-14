@@ -20,7 +20,6 @@ import { useToast } from "../hooks/useToast.jsx";
 // Funciones de exportación (lazy loading)
 // ──────────────────────────────────────────────────────────────────
 async function exportarPDF(asientos) {
-
   const { default: jsPDF } = await import("jspdf");
   const { default: autoTable } = await import("jspdf-autotable");
   const doc = new jsPDF();
@@ -153,12 +152,18 @@ function NuevoAsientoDialog({ monedas, onGuardar, saving, toast }) {
       resetForm();
     } catch (err) {
       // Error proveniente del backend
+
+      const mensajeServidor =
+        err.response?.data?.mensaje || err.response?.data?.message;
+      const mensajeFinal =
+        mensajeServidor ||
+        "Ocurrió un error inesperado al conectar con el servidor.";
+
       toast({
         title: "Error al crear asiento",
-        description: err.message || "Ocurrió un error inesperado.",
+        description: mensajeFinal, 
         variant: "error",
       });
-      setErrorLocal(err.message);
     }
   };
 
@@ -600,7 +605,9 @@ export default function AsientoContablePage() {
                   </span>
                 </div>
                 <span className="text-xs font-mono font-bold text-grey-500 bg-grey-100 px-2 py-1 rounded w-fit">
-                  {asiento.idContabilidad ? `#${asiento.idContabilidad}` : "Pendiente"}
+                  {asiento.idContabilidad
+                    ? `#${asiento.idContabilidad}`
+                    : "Pendiente"}
                 </span>
                 <div className="flex justify-end">
                   <DetalleAsientoDialog
